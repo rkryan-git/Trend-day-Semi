@@ -1,0 +1,11 @@
+date,time_cet,event,affects,impact,status,note
+2026-11-10,14:30,US CPI (October),All semis via Nasdaq/yields,High,Confirmed,BLS schedule
+2026-11-10,,TSMC October monthly sales (around the 10th),Equipment (LRCX AMAT ASML) + AI chips,Medium,Approx. date,TSMC posts monthly sales around the 10th
+2026-11-17,22:00,Nvidia (NVDA) Q3 FY27 earnings (after US close),Whole sector next day,Very high,Confirmed,Nvidia press release 28 Oct 2026; call 23:00 CET
+2026-11-25,20:00,Fed Beige Book,All,Low,Confirmed,Federal Reserve calendar
+2026-12-09,20:00,FOMC rate decision + dot plot,All,High,Confirmed,Press conference 20:30 CET
+2026-12-10,14:30,US CPI (November),All semis via Nasdaq/yields,High,Confirmed,BLS schedule
+2026-12-10,,TSMC November monthly sales (around the 10th),Equipment + AI chips,Medium,Approx. date,
+2026-12-16,22:30,Micron (MU) Q1 FY27 earnings (estimate),Memory (MU SNDK WDC Hynix Samsung),Very high,Estimated,Some calendars say 23 Dec; check Micron IR when announced
+2027-01-07,,Samsung Q4 preliminary earnings (estimate),Memory,High,Estimated,Usually first week of the quarter
+2027-01-27,20:00,FOMC rate decision,All,High,Tentative,Fed 2027 tentative schedule
