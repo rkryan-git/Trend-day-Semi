@@ -287,7 +287,7 @@ with tab_live:
             intra = load_intraday(all_us)
             dly = load_daily(all_us)
             ovn = load_overnight()
-            pre = load_premarket(tuple(WATCH)) if phase == "pre" else {}
+            pre = load_premarket(all_us) if phase == "pre" else {}
         sess_all = {t: m.split_sessions(df) for t, df in intra.items() if df is not None and not df.empty}
         sess_done = su.drop_unfinished(sess_all, now_ny)   # finished candles only: setups, filter, log
         snaps = build_snapshots(sess_all, dly, list(all_us))
@@ -478,6 +478,10 @@ with tab_live:
                 continue
             col.metric(tk, f"{s.last:,.2f}", f"{s.chg:+.2f}%",
                        help=f"{'Above' if s.vwap_dist > 0 else 'Below'} VWAP by {abs(s.vwap_dist):.2f}%")
+            p = pre.get(tk)
+            if p:
+                pc = (p / s.last - 1) * 100
+                col.caption(f"Pre-market **{p:,.2f}** :{'green' if pc >= 0 else 'red'}[{pc:+.2f}%]")
         cols[-1].metric("Watchlist breadth", "—" if breadth is None else f"{breadth:+.2f}",
                         help="(stocks up − stocks down) / total. Near ±1 means the whole group moves together.")
 
@@ -496,7 +500,9 @@ with tab_live:
             v = m.trend_score(s, sector_snap if t != SECTOR else None, breadth, catalyst_today)
             verdicts[t] = v
             rows.append({
-                "Ticker": t, "Last": round(s.last, 2), "Chg %": round(s.chg, 2), "Gap %": round(s.gap, 2),
+                "Ticker": t, "Last": round(s.last, 2), "Chg %": round(s.chg, 2),
+                **({"Pre-mkt": round(pre[t], 2), "Pre-mkt %": round((pre[t] / s.last - 1) * 100, 2)} if pre.get(t) else {}),
+                "Gap %": round(s.gap, 2),
                 "First 30m %": None if s.first30 is None else round(s.first30, 2),
                 "vs VWAP %": round(s.vwap_dist, 2), "VWAP side": round(s.vwap_side, 2),
                 "Opening range": {1: "Above ↑", -1: "Below ↓", 0: "Inside"}[s.or_break] if s.or_high else "Forming",
@@ -511,7 +517,7 @@ with tab_live:
                 return ""
             return "color: #d64545" if val < 0 else "color: #2e9e5b"
 
-        pct_cols = [c for c in ["Chg %", "Gap %", "First 30m %", "vs VWAP %"] if c in table]
+        pct_cols = [c for c in ["Chg %", "Pre-mkt %", "Gap %", "First 30m %", "vs VWAP %"] if c in table]
         st.dataframe(table.style.map(color_pct, subset=pct_cols).format(precision=2, na_rep="—"),
                      hide_index=True, width="stretch")
 
