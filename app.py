@@ -74,19 +74,19 @@ ui.inject_css()   # once per full run, outside the auto-refresh fragment
 # ----------------------------------------------------------------------------
 # Sidebar
 # ----------------------------------------------------------------------------
-st.sidebar.title("Settings")
+ui.group("Settings")
 watch_txt = st.sidebar.text_input("Watchlist (US tickers, comma-separated)", ", ".join(DEFAULT_WATCH))
 WATCH = [t.strip().upper() for t in watch_txt.split(",") if t.strip()]
 SECTOR = st.sidebar.selectbox("Sector benchmark", ["SMH", "SOXX"], index=0)
 REFRESH = st.sidebar.select_slider("Auto-refresh every", options=[30, 60, 120, 300], value=60,
                                    format_func=lambda s: f"{s}s")
-st.sidebar.subheader("Filters")
+ui.group("Filters")
 LONG_ONLY = st.sidebar.checkbox("Long only", value=True, help=su.FILTER_EVIDENCE["shorts"])
 REQUIRE_SECTOR = st.sidebar.checkbox("Require SMH + QQQ above open and VWAP", value=True, help=su.FILTER_EVIDENCE["sector"])
 SPREAD = st.sidebar.number_input("T212 round-trip spread (%)", min_value=0.0, max_value=2.0, value=0.25, step=0.05,
                                  help="Comes off every backtest and log result. Check the real spread in T212 for each stock.")
 SHOW_ORB = st.sidebar.checkbox("Show experimental ORB-15 signal", value=False, help=su.FILTER_EVIDENCE["orb"])
-st.sidebar.subheader("Exit and sizing")
+ui.group("Exit and sizing")
 EXIT_LABEL = st.sidebar.selectbox("Exit", list(su.EXIT_OPTIONS), index=0,
                                   help="The last 10 minutes moved 1.7× more than midday with no direction bias; exiting at "
                                        "21:30 kept ~92% of the 15:40 setup's result in testing. On the weeks when US and EU "
@@ -277,13 +277,13 @@ with tab_live:
 
         c1, c2 = st.columns([1, 1])
         with c1:
-            st.subheader("Catalysts today")
+            st.header("Catalysts today")
             if cat_today.empty:
                 st.caption("Nothing scheduled.")
             for _, r in cat_today.iterrows():
                 st.markdown(f"🔔 **{r['event']}** {r['time_cet'] or ''} · {r['affects']} · *{r['impact']}* ({r['status']})")
         with c2:
-            st.subheader("Next 3 weeks")
+            st.header("Next 3 weeks")
             if upcoming.empty:
                 st.caption("Nothing on the calendar.")
             else:
@@ -304,7 +304,7 @@ with tab_live:
         breadth = m.breadth_of([snaps.get(t) for t in WATCH])
 
         # ---- overnight ---------------------------------------------------------
-        st.subheader("Overnight read")
+        st.header("Overnight read")
         st.caption("Korea closes 07:30 your time, Japan 07:30, Amsterdam trades from 09:00. "
                    "When SK Hynix moved 3%+, MU/SNDK/WDC gapped the same way 77% of the time (60-day test).")
         cols = st.columns(len(OVERNIGHT))
@@ -323,7 +323,7 @@ with tab_live:
 
         with radar_slot:
             # ---- big-day radar ---------------------------------------------------
-            st.subheader("Big-day radar")
+            st.header("Big-day radar")
             st.caption("How likely a ±7% day is, from the warnings that came before past big days "
                        f"(SNDK/MU/WDC, Nov 2024–Nov 2026: normally {su.BIG_DAY_RATES['base']}% of days; "
                        f"{su.BIG_DAY_RATES['no warning']}% with no warning, {su.BIG_DAY_RATES['any warning']}% with one). "
@@ -360,12 +360,34 @@ with tab_live:
                     "Warnings": ", ".join(r.warnings) or "none",
                 })
             radar_df = pd.DataFrame(radar_rows)
-            st.dataframe(radar_df, hide_index=True, width="stretch", height=38 + 35 * len(radar_df),
-                         column_config={"Chance of ±7% day": st.column_config.ProgressColumn(
-                             "Chance of ±7% day", min_value=0, max_value=100, format="%.0f%%", color=ui.tok()["ink"])})
+            _t = ui.tok()
+
+            def _lvl(v):
+                return {"High": f"color: {_t['caution']}; font-weight: 600",
+                        "Elevated": f"color: {_t['caution']}"}.get(v, "")
+            ranked = radar_df.dropna(subset=["Chance of ±7% day"]) if "Chance of ±7% day" in radar_df else radar_df.iloc[0:0]
+            g_col, t_col = st.columns([1, 2.6], vertical_alignment="center")
+            if not ranked.empty:
+                top = ranked.sort_values("Chance of ±7% day", ascending=False).iloc[0]
+                with g_col:
+                    st.plotly_chart(ui.gauge(top["Ticker"], float(top["Chance of ±7% day"]), top["Level"], su.BIG_DAY_RATES),
+                                    config={"displayModeBar": False, "staticPlot": True})
+                    st.caption(f"Ticks: {su.BIG_DAY_RATES['no warning']}% no warning · {su.BIG_DAY_RATES['base']}% all days · "
+                               f"{su.BIG_DAY_RATES['any warning']}% any warning · {su.BIG_DAY_RATES['gap ±5%']}% after a 5%+ gap.")
+            with t_col if not ranked.empty else st.container():
+                st.dataframe(radar_df.style.map(_lvl, subset=["Level"]) if "Level" in radar_df else radar_df,
+                             hide_index=True, width="stretch", height=35 * (len(radar_df) + 1) + 3,
+                             column_config={
+                                 "Chance of ±7% day": st.column_config.ProgressColumn(
+                                     "Chance of ±7% day", min_value=0, max_value=100, format="%.0f%%", color=_t["ink"]),
+                                 "Ticker": st.column_config.TextColumn(width="small"),
+                                 "Level": st.column_config.TextColumn(width="small"),
+                                 "Hynix": st.column_config.TextColumn(width="small"),
+                                 "Yesterday": st.column_config.TextColumn(width="small"),
+                                 "Warnings": st.column_config.TextColumn(width="medium")})
 
         # ---- setups -----------------------------------------------------------
-        st.subheader("Setups")
+        st.header("Setups")
         st.caption(f"**{su.SETUP_A}:** {su.RESEARCH[su.SETUP_A]['rule']}  \n"
                    f"**{su.SETUP_B}:** {su.RESEARCH[su.SETUP_B]['rule']}")
 
@@ -412,6 +434,9 @@ with tab_live:
                 with why:
                     st.dataframe(mv.style.map(_clr, subset=num).format(precision=2, na_rep="—"), hide_index=True,
                                  width="stretch", height=38 + 35 * len(mv))
+                    if filt is not None:
+                        st.caption(f"Versus yesterday's close (what the Sector tape shows): SMH {pct(filt['smh_day'])}, "
+                                   f"QQQ {pct(filt['qqq_day'])}. The filter looks at the move since the open, not the day.")
                     st.caption("Since open = vs today's 15:30 opening price (what the filter uses), not vs yesterday's close. "
                                "Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.")
 
@@ -510,7 +535,7 @@ with tab_live:
             st.caption(f"Couldn't update signal_log.csv: {e}")
 
         # ---- sector -----------------------------------------------------------
-        st.subheader("Sector tape")
+        st.header("Sector tape")
         cols = st.columns(len(SECTOR_REFS) + 1)
         for col, tk in zip(cols, SECTOR_REFS):
             s = snaps.get(tk)
@@ -527,7 +552,7 @@ with tab_live:
                         help="(stocks up − stocks down) / total. Near ±1 means the whole group moves together.")
 
         # ---- watchlist table -------------------------------------------------
-        st.subheader("Watchlist")
+        st.header("Watchlist")
         any_snap = next((s for s in snaps.values() if s is not None), None)
         if any_snap is not None:
             st.caption(f"Session of {any_snap.extra['date']:%a %d %b} · {any_snap.bars * m.BAR_MINUTES} min of trading. "
@@ -563,7 +588,7 @@ with tab_live:
                      hide_index=True, width="stretch")
 
         # ---- per-ticker detail -----------------------------------------------
-        st.subheader("Detail")
+        st.header("Detail")
         for t in WATCH:
             s, v = snaps.get(t), verdicts.get(t)
             if s is None or v is None:
@@ -598,9 +623,9 @@ with tab_log:
     else:
         stats = su.log_stats(log, SPREAD)
         if not stats.empty:
-            st.subheader("Results so far (closed signals)")
+            st.header("Results so far (closed signals)")
             st.dataframe(stats, width="stretch")
-        st.subheader("All signals")
+        st.header("All signals")
         st.dataframe(log.sort_values(["date", "ticker"], ascending=[False, True]), hide_index=True, width="stretch")
         st.download_button("Download signal_log.csv", log.to_csv(index=False), "signal_log.csv", "text/csv")
     st.caption("Results are % moves of the stock from entry to the close; 'after spread' subtracts your spread setting. "
@@ -629,7 +654,7 @@ with tab_spread:
         st.caption("No readings yet.")
     else:
         summ = su.spread_summary(spreads)
-        st.subheader("Average round-trip spread (%) by time of day")
+        st.header("Average round-trip spread (%) by time of day")
         st.dataframe(summ, width="stretch")
         worst = float(spreads["spread_pct"].mean())
         verdict = ("🟢 Your readings average **{:.2f}%**, at or below your {:.2f}% setting: the backtest costs are realistic."
@@ -655,17 +680,17 @@ with tab_bt:
         if bt.empty:
             st.warning("Not enough data to backtest.")
         else:
-            st.subheader("All signals")
+            st.header("All signals")
             st.dataframe(su.summarize_setups(bt, SPREAD), width="stretch")
-            st.subheader("Only when SMH + QQQ were above their open and VWAP at entry")
+            st.header("Only when SMH + QQQ were above their open and VWAP at entry")
             st.dataframe(su.summarize_setups(bt, SPREAD, filtered=True), width="stretch")
             st.caption(f"after_spread_% subtracts your {SPREAD:.2f}% spread setting. won_% = share of trades that ended "
                        "in profit. 95%_range = where the true win rate plausibly lies; if it includes 50%, it could be a coin flip.")
-            st.subheader("Exit time")
+            st.header("Exit time")
             st.dataframe(su.exit_compare(bt), width="stretch")
             st.caption("Average result (before spread) if you exit at each time. The rest of this tab uses your exit setting.")
 
-            st.subheader("Account result by sizing rule")
+            st.header("Account result by sizing rule")
             sims = {}
             for mode_name, mode in (("Every signal at full risk", "every signal at full risk"),
                                     ("One trade per day", "one"), ("Split the day's risk", "split")):
@@ -676,7 +701,7 @@ with tab_bt:
                        "'Every signal at full risk' stacks correlated positions: the bigger total comes with bigger "
                        "drawdowns, not more edge. Compare return_per_drawdown.")
 
-            st.subheader("Filter breakdown")
+            st.header("Filter breakdown")
             for setup in (su.SETUP_A, su.SETUP_B, su.SETUP_ORB):
                 for side in ("LONG", "SHORT"):
                     fb = su.filter_breakdown(bt, setup, side, SPREAD)
@@ -718,11 +743,11 @@ with tab_long:
             st.warning("Not enough data.")
         else:
             st.caption(f"{res['stock_days']} stock-days, {res['span']}. A ±7% day happened on {res['base']}% of them.")
-            st.subheader("Warnings before big days")
+            st.header("Warnings before big days")
             st.dataframe(res["warnings"], width="stretch")
-            st.subheader("16:30 first-hour rule")
+            st.header("16:30 first-hour rule")
             st.dataframe(res["first_hour"], width="stretch")
-            st.subheader("Filters on the LONG side of the 16:30 rule")
+            st.header("Filters on the LONG side of the 16:30 rule")
             st.caption("Sector = SMH and QQQ both up in the first hour. On hourly data VWAP isn't available, so this "
                        "uses 'above the open' only.")
             st.dataframe(res["filters"], width="stretch")

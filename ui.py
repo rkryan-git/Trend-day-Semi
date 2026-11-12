@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import time
 from html import escape
 
+import plotly.graph_objects as go
 import streamlit as st
 
 # Mode tokens (DESIGN.md section 2). Picked per run from st.context.theme.type, never hard-coded in app.py.
@@ -42,8 +43,12 @@ body {
 ::selection { background: var(--ink); color: var(--canvas); }
 h1, h2, h3, h4, h5, h6 { letter-spacing: -0.025em; }
 
-/* wordmark (native h6, so Streamlit applies Geist in dark and Newsreader in light) */
-.st-key-wordmark h6 { font-size:17px; font-weight:500; letter-spacing:-0.01em; padding:0; margin:0; color:var(--ink); }
+/* wordmark and sidebar group labels (plain text, not headings) */
+.stdr-word { margin:0; font: 500 17px/1.2 Geist, Inter, sans-serif; letter-spacing:-0.01em; color:var(--ink); }
+@media (prefers-color-scheme: light) { .stdr-word { font: 400 20px/1.2 Newsreader, Georgia, serif; } }
+body:has(.stdr-mode-light) .stdr-word { font: 400 20px/1.2 Newsreader, Georgia, serif; }
+body:has(.stdr-mode-dark) .stdr-word { font: 500 17px/1.2 Geist, Inter, sans-serif; }
+.stdr-group { margin:18px 0 2px; font-size:13px; font-weight:500; color:var(--muted); }
 .stdr-status { font: 500 12px/1 Inter, sans-serif; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
 .stdr-status b { color:var(--ink); font-weight:500; }
 
@@ -71,23 +76,23 @@ body:has(.stdr-mode-dark) .st-key-main_tabs [role="tab"] { border-radius:8px; }
 .st-key-run_bt button:hover, .st-key-run_long button:hover, .st-key-save_spread button:hover { opacity:.86; }
 
 /* decision card: a keyed native container, so its heading uses the theme's heading font */
-.st-key-decision_card { background:var(--surface); border-radius:20px; padding:28px 32px 26px; box-shadow:var(--card-shadow); gap:0; }
+.st-key-decision_card { container-type:inline-size; background:var(--surface); border-radius:20px; padding:28px 32px 26px; box-shadow:var(--card-shadow); gap:0; }
 .st-key-decision_card h1 { font-size:52px; line-height:1.02; padding:0 0 6px; margin:0; letter-spacing:-0.03em; text-wrap:balance; }
-.st-key-decision_card h1 a, .st-key-wordmark h6 a { display:none; }
+.st-key-decision_card h1 a { display:none; }
 .stdr-sub { margin:10px 0 0; font-size:17px; line-height:1.4; color:var(--muted); max-width:70ch; }
 .stdr-lines { margin:18px 0 0; padding:16px 0 0; border-top:1px solid var(--hairline); display:grid; gap:8px; }
 .stdr-line { display:flex; gap:10px; align-items:baseline; font-size:15px; line-height:1.4; color:var(--ink); }
 .stdr-line .k { flex:0 0 112px; color:var(--muted); font-size:13px; }
 .gain { color:var(--gain); } .loss { color:var(--loss); } .caution { color:var(--caution); } .muted { color:var(--muted); }
-.stdr-take { display:grid; grid-template-columns: repeat(auto-fit, minmax(118px,1fr)); gap:14px 28px; margin:22px 0 0; }
+.stdr-take { display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:14px 24px; margin:22px 0 0; }
+@container (max-width: 560px) { .stdr-take { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@container (max-width: 360px) { .stdr-take { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 .stdr-take .lbl { font-size:13px; color:var(--muted); }
-.stdr-take .val { font-size:clamp(24px, 2.4vw, 32px); line-height:1.1; font-weight:500; color:var(--ink); letter-spacing:-0.02em; white-space:nowrap; }
+.stdr-take .val { font-size:clamp(20px, 5cqi, 32px); line-height:1.1; font-weight:500; color:var(--ink); letter-spacing:-0.02em; white-space:nowrap; }
 .stdr-take .who { grid-column:1/-1; font-size:13px; color:var(--muted); margin-top:6px; }
 @media (max-width: 640px) {
   .st-key-decision_card { padding:22px 20px; }
   .st-key-decision_card h1 { font-size:34px; }
-  .stdr-take { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .stdr-take .val { font-size:24px; }
   .stdr-line { flex-direction:column; gap:2px; } .stdr-line .k { flex:none; }
 }
 </style>
@@ -100,8 +105,32 @@ def inject_css() -> None:
 
 
 def wordmark() -> None:
-    with st.container(key="wordmark"):
-        st.markdown("###### Semi Trend-Day Radar")
+    st.html('<p class="stdr-word">Semi Trend-Day Radar</p>')
+
+
+def group(label: str) -> None:
+    """Sidebar group label: 13px muted sentence case, not a heading (DESIGN 6)."""
+    st.sidebar.html(f'<p class="stdr-group">{escape(label)}</p>')
+
+
+def gauge(ticker: str, chance: float, level: str, rates: dict) -> go.Figure:
+    """One half-ring for the highest-chance ticker. Ticks are read from su.BIG_DAY_RATES, never typed."""
+    t = tok()
+    ticks = sorted({rates["no warning"], rates["base"], rates["any warning"], rates["gap ±5%"]})
+    top = max(60.0, chance)
+    fill = t["caution"] if level in ("Elevated", "High") else t["ink"]
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number", value=chance,
+        number={"suffix": "%", "valueformat": ".0f", "font": {"size": 44, "color": t["ink"]}},
+        title={"text": f"{ticker} · chance of a ±7% day", "font": {"size": 13, "color": t["muted"]}},
+        gauge={"shape": "angular", "bgcolor": t["surface2"], "borderwidth": 0,
+               "axis": {"range": [0, top], "tickvals": ticks, "ticktext": [f"{v:g}" for v in ticks],
+                        "tickcolor": t["hairline"], "tickfont": {"color": t["muted"], "size": 11}},
+               "bar": {"color": fill, "thickness": 0.32},
+               "threshold": {"line": {"color": t["muted"], "width": 2}, "thickness": 0.95, "value": rates["base"]}}))
+    fig.update_layout(height=230, margin=dict(l=28, r=28, t=48, b=4), paper_bgcolor="rgba(0,0,0,0)",
+                      font=dict(family="Inter, sans-serif"), transition={"duration": 0})
+    return fig
 
 
 def mode_marker() -> str:
@@ -170,12 +199,11 @@ def decide(phase: str, now_ny, plan: list, triggered: list, filt: dict | None, r
     # supporting lines (each fact once)
     if filt is not None:
         word = '<span class="gain">Longs allowed</span>' if filt["ok"] else '<span class="loss">Longs blocked</span>'
-        out["lines"].append(("Market filter", f"{word} · since today's open SMH {pct_html(filt['smh_open'])}, "
-                             f"QQQ {pct_html(filt['qqq_open'])} · vs yesterday's close SMH {pct_html(filt['smh_day'])}, "
-                             f"QQQ {pct_html(filt['qqq_day'])}"
-                             + (f' <span class="muted">· {escape(filt["extra"])}</span>' if filt.get("extra") else "")))
-    for c in catalysts:
-        out["lines"].append(("Catalyst today", f'<span class="caution">{escape(c)}</span>'))
+        out["lines"].append(("Market filter", f"{word}"
+                             f'<span class="muted"> · SMH {pct_html(filt["smh_open"])}, QQQ {pct_html(filt["qqq_open"])} since the open</span>'
+                             + (f'<br><span class="muted">{escape(filt["extra"])}</span>' if filt.get("extra") else "")))
+    if catalysts:
+        out["lines"].append(("Catalysts today", escape(" · ".join(catalysts)) + ' <span class="muted">(very high impact)</span>'))
     if stay_out:
         out["lines"].append(("Stay out", escape(", ".join(stay_out)) + ' <span class="muted">· first hour went against the gap</span>'))
     skipped = [x for x in triggered if not x.get("taken")]
