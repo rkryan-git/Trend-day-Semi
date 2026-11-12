@@ -5,6 +5,7 @@
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const MINUS = "−";
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const isNum = (x) => typeof x === "number" && isFinite(x);
 const fmt = (x, d = 2) => (isNum(x) ? x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).replace("-", MINUS) : "—");
 const pct = (x, d = 2) => (isNum(x) ? (x > 0 ? "+" : x < 0 ? MINUS : "") + Math.abs(x).toFixed(d) + "%" : "—");
@@ -66,22 +67,23 @@ function spark(values, base, chg) {
     <circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="2.6" fill="${col}"/></svg>`;
 }
 
-function gauge(chance, level, rates) {
-  const top = Math.max(60, chance || 0), cx = 150, cy = 150, r = 118, sw = 18;
+function gauge(chance, level, rates, mini = false, id = "") {
+  const top = Math.max(60, chance || 0), cx = 150, cy = 150, r = mini ? 112 : 118, sw = mini ? 30 : 18;
   const ang = (v) => Math.PI * (1 - Math.min(v, top) / top);
   const pt = (v, rr) => [cx + rr * Math.cos(ang(v)), cy - rr * Math.sin(ang(v))];
-  const arc = (a, b) => { const [x1, y1] = pt(a, r), [x2, y2] = pt(b, r); return `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)}`; };
-  const ticks = [rates["no warning"], rates.base, rates["any warning"], rates["gap ±5%"]];
-  const tickSvg = ticks.map((v) => {
+  const [x1, y1] = pt(0, r), [x2, y2] = pt(top, r);
+  const d = `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)}`;
+  const target = (100 - (Math.min(chance || 0, top) / top) * 100).toFixed(2);
+  const ticks = mini ? "" : [rates["no warning"], rates.base, rates["any warning"], rates["gap ±5%"]].map((v) => {
     const [a1, b1] = pt(v, r - sw / 2 - 1), [a2, b2] = pt(v, r + sw / 2 + 1), [lx, ly] = pt(v, r + sw / 2 + 14);
     return `<line class="tick" x1="${a1.toFixed(1)}" y1="${b1.toFixed(1)}" x2="${a2.toFixed(1)}" y2="${b2.toFixed(1)}"/>
       <text class="tick-lbl" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${v}</text>`;
   }).join("");
   const hot = level === "High" || level === "Elevated" ? " hot" : "";
-  return `<svg class="gauge" viewBox="0 0 300 168" role="img" aria-label="Chance of a 7 percent day: ${Math.round(chance)} percent">
-    <path class="track" d="${arc(0, top)}" stroke-width="${sw}" fill="none" stroke-linecap="butt"/>
-    <path class="fill${hot}" d="${arc(0, chance)}" stroke-width="${sw}" fill="none" stroke-linecap="butt"/>
-    ${tickSvg}</svg>`;
+  return `<svg class="gauge" ${id ? `id="${id}"` : ""} viewBox="0 ${mini ? 20 : 0} 300 ${mini ? 148 : 168}" role="img" aria-label="Chance of a 7 percent day: ${Math.round(chance)} percent">
+    <path class="track" d="${d}" stroke-width="${sw}" fill="none"/>
+    <path class="fill${hot}" d="${d}" stroke-width="${sw}" fill="none" pathLength="100" stroke-dasharray="100" data-target="${target}" style="stroke-dashoffset:${target}"/>
+    ${ticks}</svg>`;
 }
 
 function candles(c, prev, marks) {
@@ -181,19 +183,20 @@ function restoreOpen(root) {
 }
 
 // ------------------------------------------------------------------ Live
-let liveTimer = null, liveData = null, openTickers = new Set();
+let liveTimer = null, liveData = null, wlOpen = null, radarSel = null, introDone = false;
 const phaseWord = { open: "US market open", pre: "Pre-market", closed: "US market closed", weekend: "Weekend" };
 
 async function loadLive() {
   try {
     liveData = await api("/api/live?" + qs());
-    renderLive(liveData);
+    if (currentTab === "live") renderLive(liveData);
+    else setStatus(liveData.phase, `${phaseWord[liveData.phase]} · ${liveData.updated.slice(0, 5)}`);
   } catch (e) {
     if (!liveData) $("#page-live").innerHTML = `<p class="loading err">Couldn't load live data: ${esc(e.message)}. Retrying.</p>`;
     setStatus("closed", "Connection problem");
   }
   clearTimeout(liveTimer);
-  liveTimer = setTimeout(() => { if (currentTab === "live") loadLive(); }, (Number(S.refresh) || 60) * 1000);
+  liveTimer = setTimeout(loadLive, (Number(S.refresh) || 60) * 1000);
 }
 
 function setStatus(phase, text) {
@@ -202,36 +205,83 @@ function setStatus(phase, text) {
   el.querySelector("span").textContent = text;
 }
 
+const levelTag = (lvl) => `<span class="status-tag ${lvl === "Low" ? "muted" : "caution"}" style="${lvl === "Low" ? "" : "color:var(--caution)"}"><i></i>${esc(lvl)}</span>`;
+const radarChips = (r) => [
+  isNum(r.gap) ? `<span class="chip">${r.gap_label === "gap" ? "Gap" : "Pre-market"} ${pct(r.gap, 1)}</span>` : "",
+  r.memory && isNum(r.hynix) ? `<span class="chip">Hynix ${pct(r.hynix, 1)}</span>` : "",
+  r.vol ? `<span class="chip">Volatility ${esc(r.vol)}${isNum(r.vol_ratio) ? ` ${r.vol_ratio.toFixed(2)}×` : ""}</span>` : "",
+  isNum(r.yesterday) ? `<span class="chip">Yesterday ${pct(r.yesterday, 1)}</span>` : "",
+].join("");
+
+function featureHTML(r, rates) {
+  return `<div>${gauge(r.chance, r.level, rates, false, "gFeature")}<div class="g-num" id="gNum">${Math.round(r.chance)}%</div></div>
+    <div class="g-meta">
+      <span class="label">Chance of a ±7% day</span>
+      <h3 class="g-name" id="gName">${esc(r.ticker)}</h3>
+      <div id="gLevel">${levelTag(r.level)}</div>
+      <div class="chips" id="gChips">${radarChips(r)}</div>
+      <p class="warn" id="gWarn">${esc((r.warnings || []).join(" · ").replace(/-(\d)/g, MINUS + "$1")) || "No warnings today."}</p>
+      <p class="gauge-key">Marks on the dial: ${rates["no warning"]}% with no warning · ${rates.base}% on all days · ${rates["any warning"]}% with any warning · ${rates["gap ±5%"]}% after a 5%+ gap.</p>
+    </div>`;
+}
+
+function selectRadar(t) {
+  if (!liveData) return;
+  const rows = liveData.radar.rows.filter((r) => r.level), r = rows.find((x) => x.ticker === t);
+  if (!r) return;
+  const prev = rows.find((x) => x.ticker === radarSel);
+  radarSel = t;
+  document.querySelectorAll(".stock-card").forEach((c) => c.setAttribute("aria-pressed", c.dataset.radar === t));
+  const fill = $("#gFeature .fill"), top = Math.max(60, r.chance);
+  if (fill) { fill.style.strokeDashoffset = 100 - (Math.min(r.chance, top) / top) * 100; fill.classList.toggle("hot", r.level !== "Low"); }
+  countUp($("#gNum"), prev ? prev.chance : 0, r.chance, (v) => `${Math.round(v)}%`);
+  $("#gName").textContent = r.ticker;
+  $("#gLevel").innerHTML = levelTag(r.level);
+  $("#gChips").innerHTML = radarChips(r);
+  $("#gWarn").textContent = (r.warnings || []).join(" · ").replace(/-(\d)/g, MINUS + "$1") || "No warnings today.";
+}
+
 function renderLive(d) {
   setStatus(d.phase, `${phaseWord[d.phase]} · ${d.updated.slice(0, 5)}`);
+  const intro = !introDone;
   const D = d.decision;
   const today = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  let k = 0;
+  const rv = () => (intro && !reduced ? `reveal" style="--d:${Math.min(k++ * 60, 600)}ms` : "");
 
-  // decision
+  // ---- decision hero
   const tickets = (D.takes || []).map((p) => `
     <div class="ticket"><div class="ticket-row">
-      <div><span class="label">Position</span><span class="val">${eur(p.position_eur)}</span></div>
-      <div><span class="label">Margin 5:1</span><span class="val">${eur(p.margin_eur_5to1)}</span></div>
-      <div><span class="label">Risk</span><span class="val">${eur(p.risk_eur, 2)}</span></div>
-      <div><span class="label">Stop</span><span class="val">${fmt(p.stop_price)}</span></div>
+      <div><span class="label">Position</span><span class="val" data-count="${p.position_eur}" data-fmt="eur0">${eur(p.position_eur)}</span></div>
+      <div><span class="label">Margin 5:1</span><span class="val" data-count="${p.margin_eur_5to1}" data-fmt="eur0">${eur(p.margin_eur_5to1)}</span></div>
+      <div><span class="label">Risk</span><span class="val" data-count="${p.risk_eur}" data-fmt="eur2">${eur(p.risk_eur, 2)}</span></div>
+      <div><span class="label">Stop</span><span class="val" data-count="${p.stop_price}" data-fmt="n2">${fmt(p.stop_price)}</span></div>
       <div><span class="label">Exit</span><span class="val">${esc(D.exit)}</span></div>
     </div><div class="ticket-who">${esc(p.ticker)} ${p.side} · ${esc(p.setup)} · entry ${fmt(p.entry)} at ${esc(p.entry_time)}</div></div>`).join("");
+  const hero = `<section class="hero" data-tone="${D.tone}" aria-labelledby="decision">
+    <div class="glass hero-card ${rv()}">
+      <div class="hero-meta"><span class="label">${esc(today)}</span><span class="label">${esc(phaseWord[d.phase])}</span><span class="label">Updated ${esc(d.updated)}</span></div>
+      <h1 class="h-display" id="decision"><span class="tone" aria-hidden="true"></span>${esc(D.head)}</h1>
+      <p class="hero-sub">${esc(D.sub)}</p>${tickets}
+    </div></section>`;
 
-  const facts = [];
+  // ---- fact blocks
+  const blocks = [];
   if (D.filter) {
-    const f = D.filter;
-    facts.push(["Market filter", `<span class="${f.ok ? "gain" : "loss"}">${f.ok ? "Longs allowed" : "Longs blocked"}</span>
-      <span class="muted"> · ${esc(String(f.note || "").replace(/^since today's open: /, "").replace(/-(\d)/g, MINUS + "$1"))} since the open</span>
-      ${f.fade ? '<br><span class="muted">Up on the day but fading since the open: the gap-up-and-fade case the filter is built to catch.</span>' : ""}`]);
+    const f = D.filter, note = String(f.note || "").replace(/^since today's open: /, "").replace(/-(\d)/g, MINUS + "$1");
+    blocks.push(`<div class="glass block lift"><span class="label">Market filter</span>
+      <span class="big ${f.ok ? "gain" : "loss"}">${f.ok ? "Longs allowed" : "Longs blocked"}</span>
+      <p class="sub">${esc(note)} since the open.${f.fade ? " Up on the day but fading since the open: the gap-up-and-fade case the filter is built to catch." : ""}</p></div>`);
   }
   if (D.size_mode === "split" && D.takes.length) {
     const used = D.takes.reduce((a, p) => a + (p.risk_eur || 0), 0);
-    facts.push(["Risk used", `<span class="num">${eur(used, 2)} of ${eur(D.budget, 2)}</span> today`]);
+    blocks.push(`<div class="glass block lift"><span class="label">Risk used today</span><span class="big num">${eur(used, 2)} <span class="muted">of ${eur(D.budget, 2)}</span></span>
+      <span class="meter"><span class="meter-track"><span class="meter-fill" style="width:${Math.min(100, (used / (D.budget || 1)) * 100)}%"></span></span></span></div>`);
   }
-  if (D.catalysts.length) facts.push(["Catalysts today", `${D.catalysts.map(esc).join(" · ")} <span class="muted">(very high impact)</span>`]);
-  if (D.stay_out.length) facts.push(["Stay out", `${D.stay_out.map(esc).join(", ")} <span class="muted">· first hour went against the gap</span>`]);
-  if (D.also.length) facts.push(["Also fired", D.also.map((a) => `${esc(a.ticker)} <span class="muted">(${esc((a.blocked || []).join(", ") || "not in plan")})</span>`).join(", ")]);
-
+  if (D.catalysts.length) blocks.push(`<div class="glass block lift"><span class="label">Catalysts today</span>${D.catalysts.map((c) => `<span class="big">${esc(c)}</span>`).join("")}<p class="sub">Very high impact. Expect bigger moves than usual.</p></div>`);
+  if (D.stay_out.length) blocks.push(`<div class="glass block lift"><span class="label">Stay out</span><span class="big">${D.stay_out.map(esc).join(", ")}</span><p class="sub">The first hour went against the gap.</p></div>`);
+  if (D.also.length) blocks.push(`<div class="glass block lift"><span class="label">Also fired</span><span class="big">${D.also.map((a) => esc(a.ticker)).join(", ")}</span><p class="sub">${D.also.map((a) => `${esc(a.ticker)}: ${esc((a.blocked || []).join(", ") || "not in plan")}`).join(" · ")}</p></div>`);
+  const span = blocks.length >= 3 ? "span-4" : blocks.length === 2 ? "span-6" : "span-12";
   let why = "";
   if (d.since_open) {
     const f = D.filter;
@@ -239,121 +289,107 @@ function renderLive(d) {
       (f ? `<p class="prose">Versus yesterday's close: SMH ${pctHtml(f.smh_day)}, QQQ ${pctHtml(f.qqq_day)}. The filter looks at the move since the 15:30 open, not the day.</p>` : "") +
       `<p class="prose">Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.</p>`);
   }
+  const factRow = blocks.length ? `<div class="bento" style="margin-top:16px">${blocks.map((b) => b.replace('class="glass block lift"', `class="glass block lift ${span} ${rv()}"`)).join("")}</div>` : "";
 
-  const hero = `<section class="hero" data-tone="${D.tone}" aria-labelledby="decision">
-    <div class="hero-meta"><span class="label">${esc(today)}</span><span class="label">${esc(phaseWord[d.phase])}</span><span class="label">Updated ${esc(d.updated)}</span></div>
-    <h1 class="h-display" id="decision"><span class="tone" aria-hidden="true"></span>${esc(D.head)}</h1>
-    <p class="hero-sub">${esc(D.sub)}</p>
-    ${tickets}
-    ${facts.length ? `<dl class="facts">${facts.map(([k, v]) => `<div><dt class="label">${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : ""}
-    ${why}
-  </section>`;
-
-  // radar
-  const rows = d.radar.rows.filter((r) => r.level);
-  const topRow = rows.slice().sort((a, b) => b.chance - a.chance)[0];
-  const rates = d.radar.rates;
+  // ---- radar
+  const rows = d.radar.rows.filter((r) => r.level), rates = d.radar.rates;
+  if (!rows.find((r) => r.ticker === radarSel)) radarSel = rows.slice().sort((a, b) => b.chance - a.chance)[0]?.ticker || null;
+  const sel = rows.find((r) => r.ticker === radarSel);
   const radar = `<section class="section" aria-labelledby="h-radar">
-    <div class="section-head"><h2 class="h-section" id="h-radar">Big-day radar</h2>
-      <p class="prose">How likely a ±7% day is, from the warnings that came before past big days (SNDK/MU/WDC, Nov 2024 to Nov 2026). It tells you how big the day may get, not which way.</p></div>
-    <div class="radar">
-      ${topRow ? `<div class="card gauge-card"><span class="label">${esc(topRow.ticker)} · chance of a ±7% day</span>${gauge(topRow.chance, topRow.level, rates)}
-        <div class="gauge-num">${Math.round(topRow.chance)}%</div>
-        <p class="gauge-key">Marks: ${rates["no warning"]}% with no warning · ${rates.base}% on all days · ${rates["any warning"]}% with any warning · ${rates["gap ±5%"]}% after a 5%+ gap.</p></div>` : ""}
-      <div class="rows" role="table" aria-label="Big-day radar per stock">
-        <div class="row radar-row radar-head" role="row"><span class="label" role="columnheader">Stock</span><span class="label" role="columnheader">Level</span><span class="label" role="columnheader">Chance</span><span class="label" role="columnheader">Gap</span><span class="label hide-sm" role="columnheader">Warnings</span></div>
-        ${d.radar.rows.map((r) => r.level ? `<div class="row radar-row" role="row">
-          <span class="tick-name" role="cell">${esc(r.ticker)}</span>
-          <span class="level-${r.level}" role="cell">${r.level}</span>
-          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:${Math.min(100, r.chance)}%"></span></span><span class="num">${Math.round(r.chance)}%</span></span>
-          <span role="cell">${pctHtml(r.gap, 1)}<br><span class="muted" style="font-size:12px">${r.gap_label}</span></span>
-          <span class="warn" role="cell">${esc((r.warnings || []).join(" · ").replace(/-(\d)/g, MINUS + "$1")) || "No warnings"}${r.vol ? ` · volatility ${r.vol}` : ""}${r.memory && isNum(r.hynix) ? ` · Hynix ${pct(r.hynix, 1)}` : ""}</span>
-        </div>` : `<div class="row radar-row" role="row"><span class="tick-name">${esc(r.ticker)}</span><span class="muted">No data</span></div>`).join("")}
-      </div>
+    <div class="section-head"><h2 class="h-section ${rv()}" id="h-radar">Big-day radar</h2>
+      <p class="prose ${rv()}">How likely a ±7% day is for each stock, from the warnings that came before past big days (SNDK/MU/WDC, Nov 2024 to Nov 2026). It says how big the day may get, not which way. Pick a stock to see why.</p></div>
+    ${sel ? `<div class="glass radar-feature ${rv()}" id="radarFeature">${featureHTML(sel, rates)}</div>` : ""}
+    <div class="radar-grid" role="group" aria-label="Stocks on your watchlist">
+      ${d.radar.rows.map((r) => r.level ? `<button type="button" class="glass lift stock-card ${rv()}" data-radar="${esc(r.ticker)}" aria-pressed="${r.ticker === radarSel}">
+          <span class="row1"><span class="tick-name">${esc(r.ticker)}</span><span class="level-${r.level}" style="font-size:12px">${r.level}</span></span>
+          ${gauge(r.chance, r.level, rates, true)}<span class="mini-num">${Math.round(r.chance)}%</span>
+          <span class="muted" style="font-size:12px;text-align:center">${isNum(r.gap) ? `${r.gap_label === "gap" ? "gap" : "pre-mkt"} ${pct(r.gap, 1)}` : "&nbsp;"}</span></button>`
+        : `<div class="glass stock-card"><span class="tick-name">${esc(r.ticker)}</span><span class="muted">No data</span></div>`).join("")}
     </div></section>`;
 
-  // signals
-  const fired = d.setups.fired;
-  const setupCols = d.setups.columns;
+  // ---- signals
+  const fired = d.setups.fired, cols = d.setups.columns;
   const allSetups = {
-    columns: ["Stock", ...setupCols.flatMap((c) => [c, `${c} detail`])],
+    columns: ["Stock", ...cols.flatMap((c) => [c, `${c} detail`])],
     rows: d.setups.rows.map((r) => [r.ticker, ...r.cells.flatMap((c) => [
       c.side ? `${c.passed ? "TAKE" : "Skip"} ${c.side} @ ${fmt(c.entry)} · now ${pct(c.now)}` : c.state,
       [c.detail, c.filters ? `sector ${c.filters.sector ? "ok" : "not ok"}${c.filters.breadth != null ? ` · breadth ${c.filters.breadth}/3` : ""}${isNum(c.filters.atr_used) ? ` · ATR used ${fmt(c.filters.atr_used)}` : ""}` : ""].filter(Boolean).join(" · ")])]),
   };
+  const sigCards = fired.map((f) => `<article class="glass lift sig-card ${f.taken ? "taken" : ""} ${rv()}">
+      <div class="sig-head"><span class="sig-tick">${esc(f.ticker)}</span><span class="status-tag ${f.taken ? "gain" : "muted"}"><i></i>${f.taken ? "TAKE" : "Skip"} ${f.side}</span></div>
+      <div class="chips"><span class="chip">${esc(f.setup)}</span><span class="chip">${esc(f.time)}</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>${fmt(f.entry)}</b></div><div><span class="label">Now</span><b class="${tone(f.now)}">${pct(f.now)}</b></div>
+        <div><span class="label">Sector</span><b>${f.filters.sector ? "ok" : "not ok"}</b></div></div>
+      ${f.taken ? "" : `<p class="warn" style="margin:0">Skipped: ${esc((f.blocked || []).join(", "))}</p>`}</article>`).join("");
+  const nextCheck = d.phase === "open" ? (D.state === "waiting" ? D.sub : "Both setup checks are done for today.") : "Setup checks run at 15:40 and 16:30 your time.";
   const signals = `<section class="section" aria-labelledby="h-sig">
-    <div class="section-head"><h2 class="h-section" id="h-sig">Signals today</h2>
-      <p class="prose"><strong>${esc(setupCols[0])}:</strong> ${esc(d.setups.rules[setupCols[0]])} <strong>${esc(setupCols[1])}:</strong> ${esc(d.setups.rules[setupCols[1]])}</p></div>
-    ${fired.length ? `<div class="rows">
-      <div class="row sig-row radar-head"><span class="label">Stock</span><span class="label">Setup</span><span class="label">Decision</span><span class="label hide-sm">Entry</span><span class="label hide-sm">Now</span><span class="label hide-sm">Filters</span></div>
-      ${fired.map((f) => `<div class="row sig-row">
-        <span class="tick-name">${esc(f.ticker)}</span><span><span class="chip">${esc(f.setup)}</span> <span class="muted">${esc(f.time)}</span></span>
-        <span class="badge ${f.taken ? "gain" : "muted"}">${f.taken ? "TAKE" : "Skip"} ${f.side}</span>
-        <span class="num hide-sm">${fmt(f.entry)}</span><span class="hide-sm">${pctHtml(f.now)}</span>
-        <span class="warn hide-sm">${f.taken ? "" : esc((f.blocked || []).join(", ")) + " · "}sector ${f.filters.sector ? "ok" : "not ok"}${f.filters.breadth != null ? ` · breadth ${f.filters.breadth}/3` : ""}</span>
-      </div>`).join("")}</div>` : `<p class="empty">No setup has fired today.</p>`}
-    ${d.setups.research.length ? `<ul class="list" style="margin-top:20px">${d.setups.research.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-    <p class="prose" style="font-size:13px;margin-top:16px">Exit: ${esc(d.exit_label.toLowerCase())}, ${d.caption.stop}% stop (tight trailing stops ruined these setups in every test). Risk budget: ${d.caption.risk_day}% of ${eur(d.caption.capital)} for the whole day. Your ${fmt(d.caption.spread)}% spread setting comes off every result; check T212's live spread before you enter.</p>
+    <div class="section-head"><h2 class="h-section ${rv()}" id="h-sig">Signals today</h2>
+      <p class="prose ${rv()}"><strong>${esc(cols[0])}:</strong> ${esc(d.setups.rules[cols[0]])} <strong>${esc(cols[1])}:</strong> ${esc(d.setups.rules[cols[1]])}</p></div>
+    <div class="sig-grid">${sigCards || `<div class="glass block ${rv()}"><span class="label">No signal yet</span><span class="big">Nothing has fired today.</span><p class="sub">${esc(nextCheck)}</p></div>`}
+      <div class="glass block ${rv()}"><span class="label">What the research says</span>
+        ${d.setups.research.length ? `<ul class="list">${d.setups.research.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="sub">Both setups held up only with the market filter and only on the long side.</p>`}
+        <p class="sub" style="font-size:13px">Exit: ${esc(d.exit_label.toLowerCase())}, ${d.caption.stop}% stop. Risk budget: ${d.caption.risk_day}% of ${eur(d.caption.capital)} for the whole day. Your ${fmt(d.caption.spread)}% spread setting comes off every result; check T212's live spread before you enter.</p></div>
+    </div>
     ${disclose("all-setups", "All setups today, per stock", dataTable(allSetups))}
     ${d.log_error ? `<p class="err">Couldn't update signal_log.csv: ${esc(d.log_error)}</p>` : ""}
   </section>`;
 
-  // market
-  const tape = d.tape.items.map((t) => t.last == null ? `<div class="card tile"><span class="label">${t.ticker}</span><span class="fig-val">—</span></div>` : `
-    <div class="card tile"><span class="label">${t.ticker}</span><span class="fig-val">${fmt(t.last)}</span>
+  // ---- market
+  const tape = d.tape.items.map((t) => t.last == null ? `<div class="card tile lift ${rv()}"><span class="label">${t.ticker}</span><span class="fig-val">—</span></div>` : `
+    <div class="card tile lift ${rv()}"><span class="label">${t.ticker}</span><span class="fig-val" data-count="${t.last}" data-fmt="n2">${fmt(t.last)}</span>
       <span class="chg">${pctHtml(t.chg)} <span class="muted">· ${t.vwap_dist > 0 ? "above" : "below"} VWAP</span></span>
       ${isNum(t.pre) ? `<span class="pre">Pre-market ${fmt(t.pre)} ${pctHtml(t.pre_chg)}</span>` : ""}
       ${spark(t.spark, t.prev_close, t.chg)}</div>`).join("");
-  const breadth = `<div class="card tile"><span class="label">Watchlist breadth</span><span class="fig-val">${isNum(d.tape.breadth) ? (d.tape.breadth > 0 ? "+" : d.tape.breadth < 0 ? MINUS : "") + Math.abs(d.tape.breadth).toFixed(2) : "—"}</span>
+  const br = d.tape.breadth;
+  const breadth = `<div class="card tile lift ${rv()}"><span class="label">Watchlist breadth</span><span class="fig-val">${isNum(br) ? (br > 0 ? "+" : br < 0 ? MINUS : "") + Math.abs(br).toFixed(2) : "—"}</span>
+    <span class="meter" style="margin-top:6px"><span class="meter-track"><span class="meter-fill" style="width:${isNum(br) ? ((br + 1) / 2) * 100 : 50}%"></span></span></span>
     <span class="pre">(up − down) / total. Near ±1, the whole group moves together.</span></div>`;
-  const ov = d.overnight.map((o) => `<div><span class="label">${esc(o.name)}</span><span class="fig-val">${isNum(o.last) ? fmt(o.last, 0) : "—"}</span>
+  const ov = d.overnight.map((o) => `<div class="glass ov-card lift ${rv()}"><span class="label">${esc(o.name)}</span><span class="fig-val">${isNum(o.last) ? fmt(o.last, 0) : "—"}</span>
     <span class="chg">${pctHtml(o.chg)}${o.stale ? ' <span class="muted">· not today</span>' : ""}</span></div>`).join("");
   const market = `<section class="section" aria-labelledby="h-mkt">
-    <div class="section-head"><h2 class="h-section" id="h-mkt">Sector tape</h2><p class="prose">Versus yesterday's close. The thin dotted line in each chart is yesterday's close.</p></div>
+    <div class="section-head"><h2 class="h-section ${rv()}" id="h-mkt">Sector tape</h2><p class="prose ${rv()}">Versus yesterday's close. The dotted line in each chart is yesterday's close.</p></div>
     <div class="tiles">${tape}${breadth}</div>
-    <div class="section-head" style="margin-top:48px"><h3 class="h-sub">Overnight read</h3><p class="prose">Korea and Japan close 07:30 your time. When SK Hynix moved 3%+, MU/SNDK/WDC gapped the same way 77% of the time (60-day test).</p></div>
-    <div class="figs">${ov}</div></section>`;
+    <div class="section-head" style="margin-top:40px"><h3 class="h-sub ${rv()}">Overnight read</h3><p class="prose ${rv()}">Korea and Japan close 07:30 your time. When SK Hynix moved 3%+, MU/SNDK/WDC gapped the same way 77% of the time (60-day test).</p></div>
+    <div class="ov-grid">${ov}</div></section>`;
 
-  // watchlist
+  // ---- watchlist
   const wl = d.watchlist;
-  const wlRows = wl.rows.map((r) => {
-    if (r.last == null) return `<div class="row wl-row"><span class="tick-name">${esc(r.ticker)}</span><span class="muted">No data</span></div>`;
-    const open = openTickers.has(r.ticker);
-    return `<div class="row wl-row" role="button" tabindex="0" aria-expanded="${open}" data-ticker="${esc(r.ticker)}">
-      <span class="tick-name">${esc(r.ticker)}</span><span class="hide-sm">${spark(r.spark, r.prev_close, r.chg)}</span>
-      <span class="num">${fmt(r.last)}</span><span>${pctHtml(r.chg)}</span>
-      <span class="hide-sm">${pctHtml(isNum(r.pre_chg) ? r.pre_chg : r.gap)}</span><span class="hide-sm hide-md">${pctHtml(r.first30)}</span>
-      <span class="hide-sm">${pctHtml(r.vwap_dist)}</span><span class="hide-sm hide-md">${esc(r.or)}</span>
-      <span class="num hide-sm hide-md">${isNum(r.rvol) ? fmt(r.rvol) : "—"}</span>
-      <span class="hide-sm">${esc(r.verdict)} <span class="muted num">${isNum(r.score) ? "· " + fmt(r.score, 0) : ""}</span></span>${chev}</div>
-      <div class="wl-detail" id="wl-${esc(r.ticker)}" ${open ? "" : "hidden"}>
-        <div>${candles(r.candles, r.prev_close, r.marks)}
+  if (wlOpen && !wl.rows.find((r) => r.ticker === wlOpen && r.last != null)) wlOpen = null;
+  const wlCards = wl.rows.map((r) => {
+    if (r.last == null) return `<div class="glass wl-card"><span class="tick-name">${esc(r.ticker)}</span><span class="muted">No data</span></div>`;
+    const open = wlOpen === r.ticker;
+    const card = `<button type="button" class="glass lift wl-card ${rv()}" data-ticker="${esc(r.ticker)}" aria-expanded="${open}" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">${esc(r.ticker)}</span>${pctHtml(r.chg)}</span>
+      <span class="px" data-count="${r.last}" data-fmt="n2">${fmt(r.last)}</span>
+      ${spark(r.spark, r.prev_close, r.chg)}
+      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}</span>
+      <span class="verdict">${esc(r.verdict)}${isNum(r.score) ? ` · score ${fmt(r.score, 0).replace("-", MINUS)}` : ""}</span></button>`;
+    const panel = open ? `<div class="glass wl-panel" id="wl-panel">
+        <div><div class="block-title" style="margin-bottom:12px"><h3 class="h-sub">${esc(r.ticker)} · 5-minute chart, your time</h3>
+          <span class="muted" style="font-size:13px">First 30 min ${pct(r.first30)} · range ${esc(r.or)}${isNum(r.range_atr) ? ` · ${fmt(r.range_atr)}× ATR` : ""}</span></div>
+          ${candles(r.candles, r.prev_close, r.marks)}
           <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
         <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px">${(r.reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="${esc(r.ticker)}" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
-      </div>`;
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="${esc(r.ticker)}" style="margin-top:12px"><li class="muted">Loading…</li></ul></div></div>` : "";
+    return card + panel;
   }).join("");
-  const anyPre = wl.rows.some((r) => isNum(r.pre_chg));
   const watch = `<section class="section" aria-labelledby="h-wl">
-    <div class="section-head"><h2 class="h-section" id="h-wl">Watchlist</h2>
-      <p class="prose">${wl.session ? `Session of ${esc(wl.session)} · ${wl.minutes} min of trading. ` : ""}Open a row for the 5-minute chart, the score reasons and headlines. The trend score is experimental: a simplified version didn't hold up in testing.</p></div>
-    <div class="rows">
-      <div class="row wl-row head"><span class="label">Stock</span><span class="label hide-sm">Today</span><span class="label">Last</span><span class="label">Change</span>
-        <span class="label hide-sm">${anyPre ? "Pre-mkt" : "Gap"}</span><span class="label hide-sm hide-md">First 30m</span><span class="label hide-sm">vs VWAP</span>
-        <span class="label hide-sm hide-md">Range</span><span class="label hide-sm hide-md">RVOL</span><span class="label hide-sm">Score</span><span></span></div>
-      ${wlRows}</div></section>`;
+    <div class="section-head"><h2 class="h-section ${rv()}" id="h-wl">Watchlist</h2>
+      <p class="prose ${rv()}">${wl.session ? `Session of ${esc(wl.session)} · ${wl.minutes} min of trading. ` : ""}Open a stock for its 5-minute chart, the score reasons and headlines. The trend score is experimental: a simplified version didn't hold up in testing.</p></div>
+    <div class="wl-grid">${wlCards}</div></section>`;
 
-  // calendar
+  // ---- calendar
   const ct = d.catalysts.today, up = d.catalysts.upcoming;
   const cal = `<section class="section" aria-labelledby="h-cal">
-    <div class="section-head"><h2 class="h-section" id="h-cal">Calendar</h2><p class="prose">From catalysts.csv plus earnings dates from Yahoo. Add your own events to catalysts.csv.</p></div>
-    <div class="cal"><div><h3 class="h-sub" style="margin-bottom:12px">Today</h3>${ct.length ? ct.map((c) => `<div class="cal-item"><span class="label">${esc(c.time || "All day")}</span><span>${esc(c.event)}<br><span class="muted" style="font-size:13px">${esc(c.affects)}</span></span><span class="${c.impact === "Very high" ? "" : "muted"}" style="font-size:13px">${esc(c.impact)}</span></div>`).join("") : '<p class="empty">Nothing scheduled.</p>'}</div>
-      <div><h3 class="h-sub" style="margin-bottom:12px">Next 3 weeks</h3>${up.length ? up.map((c) => `<div class="cal-item"><span class="label">${esc(new Date(c.date + "T12:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }))}${c.time ? " · " + esc(c.time) : ""}</span><span>${esc(c.event)}</span><span class="muted" style="font-size:13px">${esc(c.impact)} · ${esc(c.status)}</span></div>`).join("") : '<p class="empty">Nothing on the calendar.</p>'}</div></div></section>`;
+    <div class="section-head"><h2 class="h-section ${rv()}" id="h-cal">Calendar</h2><p class="prose ${rv()}">From catalysts.csv plus earnings dates from Yahoo. Add your own events to catalysts.csv.</p></div>
+    <div class="cal"><div class="glass lift ${rv()}"><h3 class="h-sub" style="margin-bottom:8px">Today</h3>${ct.length ? ct.map((c) => `<div class="cal-item"><span class="label">${esc(c.time || "All day")}</span><span>${esc(c.event)}<br><span class="muted" style="font-size:13px">${esc(c.affects)}</span></span><span class="${c.impact === "Very high" ? "" : "muted"}" style="font-size:13px">${esc(c.impact)}</span></div>`).join("") : '<p class="empty">Nothing scheduled.</p>'}</div>
+      <div class="glass lift ${rv()}"><h3 class="h-sub" style="margin-bottom:8px">Next 3 weeks</h3>${up.length ? up.map((c) => `<div class="cal-item"><span class="label">${esc(new Date(c.date + "T12:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }))}${c.time ? " · " + esc(c.time) : ""}</span><span>${esc(c.event)}</span><span class="muted" style="font-size:13px">${esc(c.impact)} · ${esc(c.status)}</span></div>`).join("") : '<p class="empty">Nothing on the calendar.</p>'}</div></div></section>`;
 
   const page = $("#page-live");
-  page.innerHTML = hero + radar + signals + `<hr class="rule">` + market + watch + cal;
+  page.innerHTML = hero + factRow + why + radar + signals + market + watch + cal;
   restoreOpen(page);
-  openTickers.forEach((t) => loadNews(t));
+  if (wlOpen) loadNews(wlOpen);
+  animateIn(page, intro);
 }
 
 async function loadNews(t) {
@@ -366,14 +402,79 @@ async function loadNews(t) {
   } catch (e) { ul.innerHTML = '<li class="muted">Headlines unavailable.</li>'; }
 }
 
-function toggleRow(row) {
-  const t = row.dataset.ticker, panel = document.getElementById(`wl-${t}`), open = row.getAttribute("aria-expanded") !== "true";
-  row.setAttribute("aria-expanded", open);
-  panel.hidden = !open;
-  open ? (openTickers.add(t), loadNews(t)) : openTickers.delete(t);
+document.addEventListener("click", (e) => {
+  const rc = e.target.closest(".stock-card[data-radar]");
+  if (rc) { selectRadar(rc.dataset.radar); return; }
+  const wc = e.target.closest(".wl-card[data-ticker]");
+  if (wc && liveData) {
+    wlOpen = wlOpen === wc.dataset.ticker ? null : wc.dataset.ticker;
+    renderLive(liveData);
+    const again = document.querySelector(`.wl-card[data-ticker="${CSS.escape(wc.dataset.ticker)}"]`);
+    if (again) again.focus({ preventScroll: true });
+  }
+});
+
+// ------------------------------------------------------------------ motion
+const FMT = { eur0: (v) => eur(v), eur2: (v) => eur(v, 2), n2: (v) => fmt(v) };
+function countUp(el, from, to, f, dur = 900) {
+  if (!el || !isNum(to)) return;
+  if (reduced) { el.textContent = f(to); return; }
+  const t0 = performance.now();
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = f(from + (to - from) * e);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
-document.addEventListener("click", (e) => { const r = e.target.closest(".wl-row[data-ticker]"); if (r && !e.target.closest("a")) toggleRow(r); });
-document.addEventListener("keydown", (e) => { const r = e.target.closest?.(".wl-row[data-ticker]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleRow(r); } });
+let revealObs = null;
+function animateIn(root, intro) {
+  // gauges: start empty on the first load, then sweep to their value
+  root.querySelectorAll(".gauge .fill").forEach((f) => {
+    const target = f.dataset.target;
+    if (intro && !reduced) { f.style.strokeDashoffset = 100; requestAnimationFrame(() => requestAnimationFrame(() => (f.style.strokeDashoffset = target))); }
+    else f.style.strokeDashoffset = target;
+  });
+  if (!intro || reduced) return;
+  document.body.classList.add("intro");
+  document.body.classList.remove("settled");
+  root.querySelectorAll("[data-count]").forEach((el) => countUp(el, 0, Number(el.dataset.count), FMT[el.dataset.fmt] || ((v) => fmt(v)), 1100));
+  revealObs?.disconnect();
+  revealObs = new IntersectionObserver((ents) => ents.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("in"); revealObs.unobserve(en.target); } }), { rootMargin: "0px 0px -8% 0px" });
+  root.querySelectorAll(".reveal").forEach((el) => revealObs.observe(el));
+  introDone = true;
+  // after the first scroll-through window, refreshes render settled (no replays)
+  setTimeout(() => { document.body.classList.remove("intro"); }, 2200);
+  addEventListener("scroll", settleLater, { passive: true, once: true });
+  setTimeout(settleLater, 12000);
+}
+function settleLater() { setTimeout(() => document.body.classList.add("settled"), 1500); }
+
+// sheen follows the pointer across glass
+let sheenRaf = 0, sheenEv = null;
+document.addEventListener("pointermove", (e) => {
+  sheenEv = e;
+  if (sheenRaf) return;
+  sheenRaf = requestAnimationFrame(() => {
+    sheenRaf = 0;
+    const el = sheenEv.target.closest?.(".glass, .card");
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${sheenEv.clientX - r.left}px`);
+    el.style.setProperty("--my", `${sheenEv.clientY - r.top}px`);
+  });
+}, { passive: true });
+
+// liquid tab indicator
+function movePill() {
+  const nav = $(".tabs"), a = nav.querySelector('a[aria-current="page"]');
+  let pill = nav.querySelector(".tab-pill");
+  if (!pill) { pill = document.createElement("span"); pill.className = "tab-pill"; pill.setAttribute("aria-hidden", "true"); nav.prepend(pill); }
+  if (!a) return;
+  pill.style.left = `${a.offsetLeft}px`;
+  pill.style.width = `${a.offsetWidth}px`;
+}
+addEventListener("resize", movePill);
 
 // ------------------------------------------------------------------ Signal log
 async function renderLog() {
@@ -590,6 +691,7 @@ function route() {
   currentTab = RENDER[tab] ? tab : "live";
   document.querySelectorAll(".page").forEach((p) => (p.hidden = p.dataset.page !== currentTab));
   document.querySelectorAll(".tabs a").forEach((a) => (a.dataset.tab === currentTab ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+  movePill();
   if (currentTab === "live" && !liveData) $("#page-live").innerHTML = '<p class="loading">Loading live data…</p>';
   RENDER[currentTab]();
   window.scrollTo({ top: 0 });

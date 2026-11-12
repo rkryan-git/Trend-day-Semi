@@ -22,6 +22,17 @@ fast**: is the market filter allowing longs, is there a TAKE signal, what size, 
 - Pre-market price next to the regular price "to whatever is usual for a model like this" (done before the
   restyle, commit cba98ae).
 
+## Update, 12 Nov 2026 (user, after seeing the custom web UI)
+- "I like the way it looks a lot better now"
+- "you think we can import some liquid glass UI and also some transparency UI and some animations"
+- "the big day radar is not dynamic it only shows mu but i want it to show the different stocks on my watchlist"
+- "there are not that many hover animations"
+- "make the visualization more stand out blocks so it creates more sectioning right now the whole app looks kind of
+  like a complex table but it needs to actually look good"
+These override the earlier "no glow / no effects" reading for glass and motion: translucent glass cards, a soft
+ambient colour field behind them, hover lift and sheen, first-load reveal and count-up animations. Still no neon, and
+the 60 s refresh must not replay animations or slow down.
+
 ## Must keep
 Every existing feature, setting, number, tab, form, log write, backtest and the 60 s live refresh.
 Caveats and "not financial advice" text stay. No invented numbers: every mini chart is drawn from data the app

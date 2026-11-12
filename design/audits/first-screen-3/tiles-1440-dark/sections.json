@@ -1,0 +1,62 @@
+{
+ "url": "http://127.0.0.1:8765/",
+ "views": {
+  "desktop": {
+   "width": 1440,
+   "height": 900,
+   "navH": 69,
+   "scrollHeight": 3605,
+   "screens": 4.01,
+   "sections": [
+    {
+     "n": 1,
+     "tag": "section",
+     "id": "page-live",
+     "cls": "page",
+     "top": 69,
+     "h": 3365,
+     "hScreens": 3.74,
+     "offGrid": 665,
+     "tiles": [
+      {
+       "file": "desktop-sec-01-a.jpg",
+       "scrollY": 69
+      },
+      {
+       "file": "desktop-sec-01-b.jpg",
+       "scrollY": 969
+      },
+      {
+       "file": "desktop-sec-01-c.jpg",
+       "scrollY": 1869
+      },
+      {
+       "file": "desktop-sec-01-d.jpg",
+       "scrollY": 2534
+      }
+     ]
+    },
+    {
+     "n": 2,
+     "tag": "footer",
+     "id": "",
+     "cls": "wrap foot",
+     "top": 3434,
+     "h": 171,
+     "hScreens": 0.19,
+     "offGrid": 171,
+     "tiles": [
+      {
+       "file": "desktop-sec-02-a.jpg",
+       "scrollY": 2705,
+       "cutTop": 729,
+       "height": 171
+      }
+     ]
+    }
+   ],
+   "consoleErrors": []
+  }
+ },
+ "at": "2026-11-12T15:23:08.845Z"
+}

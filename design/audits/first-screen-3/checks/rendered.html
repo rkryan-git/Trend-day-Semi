@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-theme-choice="system"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semi Trend-Day Radar</title>
+<meta name="description" content="Live decision desk for MU, SNDK, WDC, LRCX, AMAT, ASML and AMD: big-day radar, two tested setups, sizing and a signal log.">
+<link rel="icon" href="/web/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/web/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin="">
+<script>
+  /* theme before first paint: system unless the user picked one */
+  (function () {
+    try {
+      var t = localStorage.getItem("stdr.theme") || "system";
+      var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+      document.documentElement.dataset.themeChoice = t;
+    } catch (e) { document.documentElement.dataset.theme = "dark"; }
+  })();
+</script>
+<link rel="stylesheet" href="/web/app.css?v=3">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#live" aria-label="Semi Trend-Day Radar, Live">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18a9 9 0 0 1 18 0"></path><path d="M7.5 18a4.5 4.5 0 0 1 9 0"></path><circle cx="12" cy="18" r="1.6"></circle></svg>
+      <span class="brand-name">Semi Trend-Day Radar</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#live" data-tab="live" aria-current="page">Live</a>
+      <a href="#log" data-tab="log">Signal log</a>
+      <a href="#spread" data-tab="spread">Spread log</a>
+      <a href="#backtest" data-tab="backtest">Backtest</a>
+      <a href="#long" data-tab="long">2-year check</a>
+      <a href="#guide" data-tab="guide">Guide</a>
+    </nav>
+    <div class="nav-tools">
+      <span class="status" id="status" aria-live="polite" data-phase="open"><i class="dot"></i><span>US market open · 16:21</span></span>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme: system. Change theme" title="Theme: system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"></path></svg></button>
+      <button class="btn btn-primary btn-sm" id="settingsBtn" type="button">Settings</button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="page" id="page-live" data-page="live"><section class="hero" data-tone="gain" aria-labelledby="decision">
+    <div class="hero-meta"><span class="label">Thu 12 Nov</span><span class="label">US market open</span><span class="label">Updated 16:21:18</span></div>
+    <h1 class="h-display" id="decision"><span class="tone" aria-hidden="true"></span>Take AMD long</h1>
+    <p class="hero-sub">Hold to your exit at 21:30. Check T212's live spread before you enter.</p>
+    
+    <div class="ticket"><div class="ticket-row">
+      <div><span class="label">Position</span><span class="val">€667</span></div>
+      <div><span class="label">Margin 5:1</span><span class="val">€133</span></div>
+      <div><span class="label">Risk</span><span class="val">€20.00</span></div>
+      <div><span class="label">Stop</span><span class="val">554.26</span></div>
+      <div><span class="label">Exit</span><span class="val">21:30</span></div>
+    </div><div class="ticket-who">AMD LONG · 15:40 confirmed gap · entry 571.40 at 15:40</div></div>
+    <dl class="facts"><div><dt class="label">Market filter</dt><dd><span class="gain">Longs allowed</span>
+      <span class="muted"> · SMH +2.77% (above VWAP), QQQ +0.88% (above VWAP) since the open</span>
+      </dd></div><div><dt class="label">Catalysts today</dt><dd>Nvidia CEO Jensen Huang resigns (unscheduled news) · AMAT earnings <span class="muted">(very high impact)</span></dd></div></dl>
+    <div class="disclose"><button type="button" aria-expanded="false" aria-controls="why-open" data-disclose="">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>Why: SMH, QQQ and your stocks since the open</button>
+    <div class="disclose-body" id="why-open" hidden=""><div class="table-wrap"><table class="data"><thead><tr><th scope="col" class="">Ticker</th><th scope="col" class="n">Last</th><th scope="col" class="n">Since open %</th><th scope="col" class="n">Last 10 min %</th><th scope="col" class="n">vs VWAP %</th><th scope="col" class="">Climb needed for filter</th></tr></thead><tbody><tr><td>SMH</td><td class="n">496.67</td><td class="n"><span class="gain">+2.43</span></td><td class="n"><span class="gain">+0.25</span></td><td class="n"><span class="gain">+0.43</span></td><td>✓ passing</td></tr><tr><td>QQQ</td><td class="n">685.32</td><td class="n"><span class="gain">+0.75</span></td><td class="n"><span class="loss">−0.01</span></td><td class="n"><span class="gain">+0.09</span></td><td>✓ passing</td></tr><tr><td>MU</td><td class="n">773.81</td><td class="n"><span class="gain">+0.58</span></td><td class="n"><span class="gain">+0.54</span></td><td class="n"><span class="loss">−0.79</span></td><td>—</td></tr><tr><td>SNDK</td><td class="n">919.77</td><td class="n"><span class="gain">+3.57</span></td><td class="n"><span class="gain">+1.01</span></td><td class="n"><span class="gain">+1.26</span></td><td>—</td></tr><tr><td>WDC</td><td class="n">306.89</td><td class="n"><span class="gain">+2.09</span></td><td class="n"><span class="gain">+0.59</span></td><td class="n"><span class="gain">+1.30</span></td><td>—</td></tr><tr><td>LRCX</td><td class="n">232.30</td><td class="n"><span class="gain">+1.94</span></td><td class="n"><span class="gain">+0.35</span></td><td class="n"><span class="gain">+0.27</span></td><td>—</td></tr><tr><td>AMAT</td><td class="n">383.64</td><td class="n"><span class="gain">+1.14</span></td><td class="n"><span class="gain">+0.14</span></td><td class="n"><span class="loss">−0.15</span></td><td>—</td></tr><tr><td>ASML</td><td class="n">1,502.18</td><td class="n"><span class="loss">−0.06</span></td><td class="n"><span class="loss">−0.17</span></td><td class="n"><span class="loss">−0.59</span></td><td>—</td></tr><tr><td>AMD</td><td class="n">561.35</td><td class="n"><span class="loss">−1.39</span></td><td class="n"><span class="loss">−0.03</span></td><td class="n"><span class="loss">−0.55</span></td><td>—</td></tr></tbody></table></div><p class="prose">Versus yesterday's close: SMH <span class="num loss">−2.08%</span>, QQQ <span class="num loss">−0.73%</span>. The filter looks at the move since the 15:30 open, not the day.</p><p class="prose">Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.</p></div></div>
+  </section><section class="section" aria-labelledby="h-radar">
+    <div class="section-head"><h2 class="h-section" id="h-radar">Big-day radar</h2>
+      <p class="prose">How likely a ±7% day is, from the warnings that came before past big days (SNDK/MU/WDC, Nov 2024 to Nov 2026). It tells you how big the day may get, not which way.</p></div>
+    <div class="radar">
+      <div class="card gauge-card"><span class="label">MU · chance of a ±7% day</span><svg class="gauge" viewBox="0 0 300 168" role="img" aria-label="Chance of a 7 percent day: 52 percent">
+    <path class="track" d="M32.0,150.0 A118,118 0 0 1 268.0,150.0" stroke-width="18" fill="none" stroke-linecap="butt"></path>
+    <path class="fill hot" d="M32.0,150.0 A118,118 0 0 1 256.8,99.8" stroke-width="18" fill="none" stroke-linecap="butt"></path>
+    <line class="tick" x1="46.1" y1="120.4" x2="26.9" y2="114.9"></line>
+      <text class="tick-lbl" x="14.4" y="111.4" text-anchor="middle" dominant-baseline="middle">5.3</text><line class="tick" x1="70.1" y1="77.3" x2="55.3" y2="63.9"></line>
+      <text class="tick-lbl" x="45.7" y="55.1" text-anchor="middle" dominant-baseline="middle">14.1</text><line class="tick" x1="108.7" y1="50.2" x2="101.0" y2="31.7"></line>
+      <text class="tick-lbl" x="96.0" y="19.7" text-anchor="middle" dominant-baseline="middle">22.5</text><line class="tick" x1="247.7" y1="104.0" x2="265.8" y2="95.5"></line>
+      <text class="tick-lbl" x="277.6" y="90.0" text-anchor="middle" dominant-baseline="middle">51.6</text></svg>
+        <div class="gauge-num">52%</div>
+        <p class="gauge-key">Marks: 5.3% with no warning · 14.1% on all days · 22.5% with any warning · 51.6% after a 5%+ gap.</p></div>
+      <div class="rows" role="table" aria-label="Big-day radar per stock">
+        <div class="row radar-row radar-head" role="row"><span class="label" role="columnheader">Stock</span><span class="label" role="columnheader">Level</span><span class="label" role="columnheader">Chance</span><span class="label" role="columnheader">Gap</span><span class="label hide-sm" role="columnheader">Warnings</span></div>
+        <div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">MU</span>
+          <span class="level-High" role="cell">High</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:51.6%"></span></span><span class="num">52%</span></span>
+          <span role="cell"><span class="num loss">−5.3%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">yesterday +11.9% · gap −5.3% · scheduled catalyst · volatility normal · Hynix −1.7%</span>
+        </div><div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">SNDK</span>
+          <span class="level-High" role="cell">High</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:51.6%"></span></span><span class="num">52%</span></span>
+          <span role="cell"><span class="num loss">−9.2%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">yesterday +13.7% · gap −9.2% · scheduled catalyst · volatility normal · Hynix −1.7%</span>
+        </div><div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">WDC</span>
+          <span class="level-High" role="cell">High</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:33.7%"></span></span><span class="num">34%</span></span>
+          <span role="cell"><span class="num loss">−4.0%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">yesterday +8.3% · gap −4.0% · scheduled catalyst · volatility normal · Hynix −1.7%</span>
+        </div><div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">LRCX</span>
+          <span class="level-High" role="cell">High</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:33.7%"></span></span><span class="num">34%</span></span>
+          <span role="cell"><span class="num loss">−3.3%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">gap −3.3% · scheduled catalyst · volatility normal</span>
+        </div><div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">AMAT</span>
+          <span class="level-High" role="cell">High</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:33.7%"></span></span><span class="num">34%</span></span>
+          <span role="cell"><span class="num loss">−4.0%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">gap −4.0% · scheduled catalyst · volatility normal</span>
+        </div><div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">ASML</span>
+          <span class="level-Elevated" role="cell">Elevated</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:22.5%"></span></span><span class="num">23%</span></span>
+          <span role="cell"><span class="num loss">−2.1%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">scheduled catalyst · volatility normal</span>
+        </div><div class="row radar-row" role="row">
+          <span class="tick-name" role="cell">AMD</span>
+          <span class="level-High" role="cell">High</span>
+          <span class="meter" role="cell"><span class="meter-track"><span class="meter-fill" style="width:23.9%"></span></span><span class="num">24%</span></span>
+          <span role="cell"><span class="num gain">+3.0%</span><br><span class="muted" style="font-size:12px">gap</span></span>
+          <span class="warn" role="cell">volatility rising (1.48× normal) · yesterday +7.3% · scheduled catalyst · volatility rising</span>
+        </div>
+      </div>
+    </div></section><section class="section" aria-labelledby="h-sig">
+    <div class="section-head"><h2 class="h-section" id="h-sig">Signals today</h2>
+      <p class="prose"><strong>15:40 confirmed gap:</strong> Gap of 0.5%+ at the open, and by 15:40 the stock is 0.3%+ further the same way. Enter at 15:40, hold to the close. <strong>16:30 first-hour confirm:</strong> Gap of 1%+, and the first hour (15:30–16:30) moves 3%+ the same way. Enter at 16:30, hold to the close.</p></div>
+    <div class="rows">
+      <div class="row sig-row radar-head"><span class="label">Stock</span><span class="label">Setup</span><span class="label">Decision</span><span class="label hide-sm">Entry</span><span class="label hide-sm">Now</span><span class="label hide-sm">Filters</span></div>
+      <div class="row sig-row">
+        <span class="tick-name">AMD</span><span><span class="chip">15:40 confirmed gap</span> <span class="muted">15:40</span></span>
+        <span class="badge gain">TAKE LONG</span>
+        <span class="num hide-sm">571.40</span><span class="hide-sm"><span class="num loss">−1.47%</span></span>
+        <span class="warn hide-sm">sector ok</span>
+      </div></div>
+    <ul class="list" style="margin-top:20px"><li>15:40 confirmed gap · LONG: 61 trades, 70% won, avg +0.90% (60 days Aug–Nov 2026, 7 semis). With SMH+QQQ above open and VWAP: 42 trades, 71%, +1.22%; without: 19 trades, +0.17%</li></ul>
+    <p class="prose" style="font-size:13px;margin-top:16px">Exit: 30 min before close (21:30), 3% stop (tight trailing stops ruined these setups in every test). Risk budget: 1% of €2,000 for the whole day. Your 0.25% spread setting comes off every result; check T212's live spread before you enter.</p>
+    <div class="disclose"><button type="button" aria-expanded="false" aria-controls="all-setups" data-disclose="">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>All setups today, per stock</button>
+    <div class="disclose-body" id="all-setups" hidden=""><div class="table-wrap"><table class="data"><thead><tr><th scope="col" class="">Stock</th><th scope="col" class="">15:40 confirmed gap</th><th scope="col" class="">15:40 confirmed gap detail</th><th scope="col" class="">16:30 first-hour confirm</th><th scope="col" class="">16:30 first-hour confirm detail</th></tr></thead><tbody><tr><td>MU</td><td>No setup</td><td>gap −5.26%, first 10 min +3.53%</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr><tr><td>SNDK</td><td>No setup</td><td>gap −9.18%, first 10 min +4.58%</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr><tr><td>WDC</td><td>No setup</td><td>gap −3.95%, first 10 min +0.84%</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr><tr><td>LRCX</td><td>No setup</td><td>gap −3.33%, first 10 min +2.36%</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr><tr><td>AMAT</td><td>No setup</td><td>gap −3.99%, first 10 min +2.36%</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr><tr><td>ASML</td><td>No setup</td><td>gap −2.07%, first 10 min +1.31%</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr><tr><td>AMD</td><td>TAKE LONG @ 571.40 · now −1.47%</td><td>gap +2.95%, first 10 min +0.37% · sector ok · ATR used 0.44</td><td>Waiting</td><td>Decides at 16:30 your time (after the first hour)</td></tr></tbody></table></div></div></div>
+    
+  </section><hr class="rule"><section class="section" aria-labelledby="h-mkt">
+    <div class="section-head"><h2 class="h-section" id="h-mkt">Sector tape</h2><p class="prose">Versus yesterday's close. The thin dotted line in each chart is yesterday's close.</p></div>
+    <div class="tiles">
+    <div class="card tile"><span class="label">SMH</span><span class="fig-val">496.67</span>
+      <span class="chg"><span class="num loss">−2.08%</span> <span class="muted">· above VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,39.0L20.0,24.3L40.0,26.5L60.0,34.7L80.0,29.9L100.0,26.7L120.0,33.5L140.0,40.0L160.0,33.0L180.0,24.9L200.0,29.5" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="29.517819706498955" r="2.6" fill="var(--loss)"></circle></svg></div>
+    <div class="card tile"><span class="label">SOXX</span><span class="fig-val">152.73</span>
+      <span class="chg"><span class="num loss">−1.72%</span> <span class="muted">· above VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,31.6L20.0,15.6L40.0,18.8L60.0,30.3L80.0,26.6L100.0,22.0L120.0,31.0L140.0,40.0L160.0,33.1L180.0,23.2L200.0,29.1" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="29.090909090909147" r="2.6" fill="var(--loss)"></circle></svg></div>
+    <div class="card tile"><span class="label">NVDA</span><span class="fig-val">163.23</span>
+      <span class="chg"><span class="num loss">−6.11%</span> <span class="muted">· above VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,40.0L20.0,32.5L40.0,31.7L60.0,32.5L80.0,28.1L100.0,25.4L120.0,29.0L140.0,30.9L160.0,27.0L180.0,23.1L200.0,24.1" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="24.147339699863608" r="2.6" fill="var(--loss)"></circle></svg></div>
+    <div class="card tile"><span class="label">QQQ</span><span class="fig-val">685.32</span>
+      <span class="chg"><span class="num loss">−0.73%</span> <span class="muted">· above VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,40.0L20.0,18.0L40.0,21.9L60.0,27.1L80.0,20.2L100.0,17.2L120.0,27.9L140.0,38.5L160.0,29.9L180.0,25.0L200.0,30.3" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="30.30000000000043" r="2.6" fill="var(--loss)"></circle></svg></div><div class="card tile"><span class="label">Watchlist breadth</span><span class="fig-val">−0.71</span>
+    <span class="pre">(up − down) / total. Near ±1, the whole group moves together.</span></div></div>
+    <div class="section-head" style="margin-top:48px"><h3 class="h-sub">Overnight read</h3><p class="prose">Korea and Japan close 07:30 your time. When SK Hynix moved 3%+, MU/SNDK/WDC gapped the same way 77% of the time (60-day test).</p></div>
+    <div class="figs"><div><span class="label">SK Hynix</span><span class="fig-val">1,255,000</span>
+    <span class="chg"><span class="num loss">−1.72%</span></span></div><div><span class="label">Samsung</span><span class="fig-val">208,000</span>
+    <span class="chg"><span class="num gain">+0.97%</span></span></div><div><span class="label">KOSPI</span><span class="fig-val">5,321</span>
+    <span class="chg"><span class="num loss">−1.01%</span></span></div><div><span class="label">Nikkei</span><span class="fig-val">60,799</span>
+    <span class="chg"><span class="num loss">−0.73%</span></span></div><div><span class="label">ASML (Amsterdam)</span><span class="fig-val">1,364</span>
+    <span class="chg"><span class="num loss">−2.82%</span></span></div></div></section><section class="section" aria-labelledby="h-wl">
+    <div class="section-head"><h2 class="h-section" id="h-wl">Watchlist</h2>
+      <p class="prose">Session of Thu 12 Nov · 55 min of trading. Open a row for the 5-minute chart, the score reasons and headlines. The trend score is experimental: a simplified version didn't hold up in testing.</p></div>
+    <div class="rows">
+      <div class="row wl-row head"><span class="label">Stock</span><span class="label hide-sm">Today</span><span class="label">Last</span><span class="label">Change</span>
+        <span class="label hide-sm">Gap</span><span class="label hide-sm hide-md">First 30m</span><span class="label hide-sm">vs VWAP</span>
+        <span class="label hide-sm hide-md">Range</span><span class="label hide-sm hide-md">RVOL</span><span class="label hide-sm">Score</span><span></span></div>
+      <div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="MU">
+      <span class="tick-name">MU</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,24.5L20.0,14.1L40.0,19.9L60.0,25.7L80.0,32.2L100.0,30.0L120.0,35.0L140.0,40.0L160.0,38.4L180.0,30.9L200.0,34.7" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="34.67090331366328" r="2.6" fill="var(--loss)"></circle></svg></span>
+      <span class="num">773.81</span><span><span class="num loss">−4.70%</span></span>
+      <span class="hide-sm"><span class="num loss">−5.26%</span></span><span class="hide-sm hide-md"><span class="num loss">−4.07%</span></span>
+      <span class="hide-sm"><span class="num loss">−0.79%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">0.98</span>
+      <span class="hide-sm">Leaning DOWN, but volume is light <span class="muted num">· −71</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-MU" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">764.57</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">776.43</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">788.29</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">800.14</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">812.00</text><line class="prev" x1="8" x2="668" y1="12.0" y2="12.0"></line><line class="up" x1="38.0" x2="38.0" y1="144.8" y2="242.8" stroke-width="1"></line><rect class="up" x="33.5" y="152.0" width="9.0" height="81.4" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="82.8" y2="159.4" stroke-width="1"></line><rect class="up" x="93.5" y="92.6" width="9.0" height="60.0" rx="1"></rect><line class="down" x1="158.0" x2="158.0" y1="91.5" y2="134.7" stroke-width="1"></line><rect class="down" x="153.5" y="92.6" width="9.0" height="33.3" rx="1"></rect><line class="down" x1="218.0" x2="218.0" y1="112.0" y2="167.0" stroke-width="1"></line><rect class="down" x="213.5" y="126.1" width="9.0" height="32.9" rx="1"></rect><line class="down" x1="278.0" x2="278.0" y1="150.7" y2="201.9" stroke-width="1"></line><rect class="down" x="273.5" y="161.9" width="9.0" height="33.9" rx="1"></rect><line class="up" x1="338.0" x2="338.0" y1="181.6" y2="225.7" stroke-width="1"></line><rect class="up" x="333.5" y="183.4" width="9.0" height="13.0" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="182.2" y2="221.5" stroke-width="1"></line><rect class="down" x="393.5" y="182.4" width="9.0" height="29.5" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="206.1" y2="247.7" stroke-width="1"></line><rect class="down" x="453.5" y="211.9" width="9.0" height="28.6" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="230.4" y2="258.0" stroke-width="1"></line><rect class="up" x="513.5" y="231.7" width="9.0" height="10.1" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="186.1" y2="233.7" stroke-width="1"></line><rect class="up" x="573.5" y="188.8" width="9.0" height="43.5" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="186.8" y2="210.1" stroke-width="1"></line><rect class="down" x="633.5" y="189.2" width="9.0" height="20.9" rx="1"></rect><path class="vwap" d="M38.0,179.9L98.0,164.7L158.0,157.4L218.0,156.1L278.0,159.3L338.0,163.4L398.0,166.7L458.0,171.6L518.0,176.4L578.0,177.9L638.0,178.2"></path><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 0.79% below VWAP; 100% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 0.98x normal for this time of day</li><li>Day range is 0.53x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="MU" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div><div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="SNDK">
+      <span class="tick-name">SNDK</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,40.0L20.0,25.6L40.0,28.2L60.0,28.3L80.0,28.2L100.0,24.8L120.0,29.6L140.0,37.4L160.0,35.2L180.0,27.2L200.0,30.4" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="30.355248041775468" r="2.6" fill="var(--loss)"></circle></svg></span>
+      <span class="num">919.77</span><span><span class="num loss">−5.94%</span></span>
+      <span class="hide-sm"><span class="num loss">−9.18%</span></span><span class="hide-sm hide-md"><span class="num loss">−4.85%</span></span>
+      <span class="hide-sm"><span class="num gain">+1.26%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">1.25</span>
+      <span class="hide-sm">Chop / range day: no edge in following <span class="muted num">· −25</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-SNDK" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">869.49</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">896.59</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">923.69</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">950.80</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">977.90</text><line class="prev" x1="8" x2="668" y1="12.0" y2="12.0"></line><line class="up" x1="38.0" x2="38.0" y1="175.4" y2="258.0" stroke-width="1"></line><rect class="up" x="33.5" y="185.8" width="9.0" height="29.9" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="117.0" y2="189.7" stroke-width="1"></line><rect class="up" x="93.5" y="123.4" width="9.0" height="62.4" rx="1"></rect><line class="down" x1="158.0" x2="158.0" y1="102.8" y2="147.9" stroke-width="1"></line><rect class="down" x="153.5" y="124.1" width="9.0" height="10.6" rx="1"></rect><line class="down" x1="218.0" x2="218.0" y1="114.4" y2="145.2" stroke-width="1"></line><rect class="down" x="213.5" y="134.7" width="9.0" height="1.0" rx="1"></rect><line class="down" x1="278.0" x2="278.0" y1="109.4" y2="146.5" stroke-width="1"></line><rect class="down" x="273.5" y="134.0" width="9.0" height="1.0" rx="1"></rect><line class="up" x1="338.0" x2="338.0" y1="116.7" y2="156.5" stroke-width="1"></line><rect class="up" x="333.5" y="119.7" width="9.0" height="14.7" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="118.4" y2="143.4" stroke-width="1"></line><rect class="down" x="393.5" y="119.0" width="9.0" height="21.7" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="139.4" y2="176.2" stroke-width="1"></line><rect class="down" x="453.5" y="141.8" width="9.0" height="32.6" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="162.1" y2="185.4" stroke-width="1"></line><rect class="up" x="513.5" y="164.9" width="9.0" height="7.6" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="130.1" y2="165.4" stroke-width="1"></line><rect class="up" x="573.5" y="130.4" width="9.0" height="34.5" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="129.9" y2="144.7" stroke-width="1"></line><rect class="down" x="633.5" y="130.9" width="9.0" height="13.0" rx="1"></rect><path class="vwap" d="M38.0,206.4L98.0,193.0L158.0,184.5L218.0,179.8L278.0,176.3L338.0,173.6L398.0,172.3L458.0,171.6L518.0,171.6L578.0,170.2L638.0,170.0"></path><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 1.26% above VWAP; 75% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 1.25x normal for this time of day</li><li>Day range is 0.63x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="SNDK" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div><div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="WDC">
+      <span class="tick-name">WDC</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,40.0L20.0,30.2L40.0,29.8L60.0,28.5L80.0,25.7L100.0,14.3L120.0,15.3L140.0,27.1L160.0,24.1L180.0,12.3L200.0,18.7" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="18.67483722711612" r="2.6" fill="var(--loss)"></circle></svg></span>
+      <span class="num">306.89</span><span><span class="num loss">−1.95%</span></span>
+      <span class="hide-sm"><span class="num loss">−3.95%</span></span><span class="hide-sm hide-md"><span class="num loss">−1.49%</span></span>
+      <span class="hide-sm"><span class="num gain">+1.30%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">0.67</span>
+      <span class="hide-sm">Chop / range day: no edge in following <span class="muted num">· −10</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-WDC" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">295.10</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">299.57</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">304.04</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">308.51</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">312.98</text><line class="prev" x1="8" x2="668" y1="12.0" y2="12.0"></line><line class="down" x1="38.0" x2="38.0" y1="173.7" y2="258.0" stroke-width="1"></line><rect class="down" x="33.5" y="182.2" width="9.0" height="9.5" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="137.3" y2="208.4" stroke-width="1"></line><rect class="up" x="93.5" y="147.6" width="9.0" height="44.1" rx="1"></rect><line class="up" x1="158.0" x2="158.0" y1="123.9" y2="175.3" stroke-width="1"></line><rect class="up" x="153.5" y="145.7" width="9.0" height="5.6" rx="1"></rect><line class="up" x1="218.0" x2="218.0" y1="103.8" y2="153.4" stroke-width="1"></line><rect class="up" x="213.5" y="140.0" width="9.0" height="9.4" rx="1"></rect><line class="up" x1="278.0" x2="278.0" y1="105.4" y2="163.5" stroke-width="1"></line><rect class="up" x="273.5" y="127.4" width="9.0" height="12.7" rx="1"></rect><line class="up" x1="338.0" x2="338.0" y1="73.7" y2="146.1" stroke-width="1"></line><rect class="up" x="333.5" y="76.0" width="9.0" height="56.8" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="71.6" y2="105.8" stroke-width="1"></line><rect class="down" x="393.5" y="73.0" width="9.0" height="7.6" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="74.3" y2="145.6" stroke-width="1"></line><rect class="down" x="453.5" y="78.7" width="9.0" height="55.2" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="112.4" y2="138.0" stroke-width="1"></line><rect class="up" x="513.5" y="120.4" width="9.0" height="13.5" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="60.7" y2="118.2" stroke-width="1"></line><rect class="up" x="573.5" y="67.0" width="9.0" height="50.2" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="69.9" y2="95.9" stroke-width="1"></line><rect class="down" x="633.5" y="71.4" width="9.0" height="24.4" rx="1"></rect><path class="vwap" d="M38.0,207.8L98.0,196.6L158.0,187.6L218.0,179.9L278.0,176.0L338.0,171.5L398.0,164.7L458.0,160.0L518.0,156.8L578.0,150.3L638.0,149.9"></path><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 1.30% above VWAP; 100% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 0.67x normal for this time of day</li><li>Day range is 0.51x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="WDC" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div><div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="LRCX">
+      <span class="tick-name">LRCX</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,39.8L20.0,20.7L40.0,16.9L60.0,34.2L80.0,32.4L100.0,19.8L120.0,21.7L140.0,40.0L160.0,35.3L180.0,20.0L200.0,28.5" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="28.53556485355645" r="2.6" fill="var(--loss)"></circle></svg></span>
+      <span class="num">232.30</span><span><span class="num loss">−1.45%</span></span>
+      <span class="hide-sm"><span class="num loss">−3.33%</span></span><span class="hide-sm hide-md"><span class="num loss">−1.01%</span></span>
+      <span class="hide-sm"><span class="num gain">+0.27%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">0.75</span>
+      <span class="hide-sm">Chop / range day: no edge in following <span class="muted num">· −23</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-LRCX" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">227.64</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">229.65</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">231.67</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">233.69</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">235.71</text><line class="prev" x1="8" x2="668" y1="12.0" y2="12.0"></line><line class="up" x1="38.0" x2="38.0" y1="151.2" y2="258.0" stroke-width="1"></line><rect class="up" x="33.5" y="156.9" width="9.0" height="94.0" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="75.4" y2="170.7" stroke-width="1"></line><rect class="up" x="93.5" y="87.2" width="9.0" height="69.8" rx="1"></rect><line class="up" x1="158.0" x2="158.0" y1="45.4" y2="111.3" stroke-width="1"></line><rect class="up" x="153.5" y="73.5" width="9.0" height="14.4" rx="1"></rect><line class="down" x1="218.0" x2="218.0" y1="47.1" y2="148.8" stroke-width="1"></line><rect class="down" x="213.5" y="74.5" width="9.0" height="62.1" rx="1"></rect><line class="up" x1="278.0" x2="278.0" y1="64.1" y2="157.0" stroke-width="1"></line><rect class="up" x="273.5" y="129.9" width="9.0" height="7.9" rx="1"></rect><line class="up" x1="338.0" x2="338.0" y1="78.9" y2="157.9" stroke-width="1"></line><rect class="up" x="333.5" y="84.2" width="9.0" height="48.1" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="79.6" y2="114.1" stroke-width="1"></line><rect class="down" x="393.5" y="81.9" width="9.0" height="9.0" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="81.5" y2="157.9" stroke-width="1"></line><rect class="down" x="453.5" y="91.8" width="9.0" height="65.8" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="125.0" y2="165.8" stroke-width="1"></line><rect class="up" x="513.5" y="140.6" width="9.0" height="17.4" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="76.9" y2="143.9" stroke-width="1"></line><rect class="up" x="573.5" y="85.0" width="9.0" height="58.9" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="81.3" y2="119.5" stroke-width="1"></line><rect class="down" x="633.5" y="81.3" width="9.0" height="34.6" rx="1"></rect><path class="vwap" d="M38.0,188.7L98.0,162.1L158.0,148.7L218.0,144.6L278.0,140.5L338.0,137.9L398.0,135.9L458.0,135.7L518.0,136.4L578.0,134.8L638.0,134.7"></path><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 0.27% above VWAP; 50% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 0.75x normal for this time of day</li><li>Day range is 0.42x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="LRCX" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div><div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="AMAT">
+      <span class="tick-name">AMAT</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,33.7L20.0,21.3L40.0,19.6L60.0,32.4L80.0,33.1L100.0,28.3L120.0,30.0L140.0,40.0L160.0,37.5L180.0,31.8L200.0,35.9" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="35.85882352941179" r="2.6" fill="var(--loss)"></circle></svg></span>
+      <span class="num">383.64</span><span><span class="num loss">−2.89%</span></span>
+      <span class="hide-sm"><span class="num loss">−3.99%</span></span><span class="hide-sm hide-md"><span class="num loss">−2.28%</span></span>
+      <span class="hide-sm"><span class="num loss">−0.15%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">1.01</span>
+      <span class="hide-sm">Leaning DOWN: needs confirmation <span class="muted num">· −47</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-AMAT" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">377.29</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">381.74</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">386.18</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">390.63</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">395.07</text><line class="prev" x1="8" x2="668" y1="12.0" y2="12.0"></line><line class="up" x1="38.0" x2="38.0" y1="155.4" y2="258.0" stroke-width="1"></line><rect class="up" x="33.5" y="160.6" width="9.0" height="69.3" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="95.2" y2="168.3" stroke-width="1"></line><rect class="up" x="93.5" y="105.9" width="9.0" height="58.8" rx="1"></rect><line class="up" x1="158.0" x2="158.0" y1="84.6" y2="123.4" stroke-width="1"></line><rect class="up" x="153.5" y="98.3" width="9.0" height="7.3" rx="1"></rect><line class="down" x1="218.0" x2="218.0" y1="89.5" y2="165.2" stroke-width="1"></line><rect class="down" x="213.5" y="100.1" width="9.0" height="54.9" rx="1"></rect><line class="down" x1="278.0" x2="278.0" y1="125.5" y2="172.8" stroke-width="1"></line><rect class="down" x="273.5" y="151.9" width="9.0" height="6.2" rx="1"></rect><line class="up" x1="338.0" x2="338.0" y1="136.9" y2="194.3" stroke-width="1"></line><rect class="up" x="333.5" y="136.9" width="9.0" height="21.9" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="137.1" y2="161.1" stroke-width="1"></line><rect class="down" x="393.5" y="137.2" width="9.0" height="7.0" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="136.5" y2="192.6" stroke-width="1"></line><rect class="down" x="453.5" y="141.5" width="9.0" height="46.9" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="174.6" y2="201.6" stroke-width="1"></line><rect class="up" x="513.5" y="177.5" width="9.0" height="7.6" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="147.9" y2="181.3" stroke-width="1"></line><rect class="up" x="573.5" y="152.4" width="9.0" height="26.3" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="154.5" y2="179.0" stroke-width="1"></line><rect class="down" x="633.5" y="154.5" width="9.0" height="15.6" rx="1"></rect><path class="vwap" d="M38.0,191.3L98.0,176.9L158.0,166.5L218.0,161.3L278.0,159.7L338.0,159.4L398.0,158.5L458.0,159.6L518.0,162.0L578.0,161.8L638.0,161.9"></path><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 0.15% below VWAP; 25% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 1.01x normal for this time of day</li><li>Day range is 0.49x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="AMAT" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div><div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="ASML">
+      <span class="tick-name">ASML</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,29.2L20.0,14.8L40.0,17.4L60.0,25.7L80.0,23.4L100.0,21.0L120.0,29.1L140.0,37.2L160.0,36.9L180.0,34.1L200.0,40.0" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="40" r="2.6" fill="var(--loss)"></circle></svg></span>
+      <span class="num">1,502.18</span><span><span class="num loss">−2.13%</span></span>
+      <span class="hide-sm"><span class="num loss">−2.07%</span></span><span class="hide-sm hide-md"><span class="num loss">−1.12%</span></span>
+      <span class="hide-sm"><span class="num loss">−0.59%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">0.96</span>
+      <span class="hide-sm">Leaning DOWN: needs confirmation <span class="muted num">· −55</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-ASML" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">1,498.38</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">1,507.49</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">1,516.61</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">1,525.72</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">1,534.83</text><line class="prev" x1="8" x2="668" y1="12.0" y2="12.0"></line><line class="up" x1="38.0" x2="38.0" y1="170.0" y2="258.0" stroke-width="1"></line><rect class="up" x="33.5" y="172.8" width="9.0" height="53.8" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="89.7" y2="182.7" stroke-width="1"></line><rect class="up" x="93.5" y="93.5" width="9.0" height="82.6" rx="1"></rect><line class="down" x1="158.0" x2="158.0" y1="66.5" y2="117.6" stroke-width="1"></line><rect class="down" x="153.5" y="93.5" width="9.0" height="14.4" rx="1"></rect><line class="down" x1="218.0" x2="218.0" y1="95.0" y2="153.9" stroke-width="1"></line><rect class="down" x="213.5" y="107.8" width="9.0" height="45.7" rx="1"></rect><line class="up" x1="278.0" x2="278.0" y1="92.0" y2="162.4" stroke-width="1"></line><rect class="up" x="273.5" y="141.1" width="9.0" height="8.8" rx="1"></rect><line class="up" x1="338.0" x2="338.0" y1="123.4" y2="177.6" stroke-width="1"></line><rect class="up" x="333.5" y="127.9" width="9.0" height="16.3" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="124.7" y2="193.0" stroke-width="1"></line><rect class="down" x="393.5" y="125.7" width="9.0" height="46.9" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="161.4" y2="221.2" stroke-width="1"></line><rect class="down" x="453.5" y="170.8" width="9.0" height="45.9" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="204.1" y2="233.0" stroke-width="1"></line><rect class="up" x="513.5" y="215.4" width="9.0" height="1.0" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="185.5" y2="216.8" stroke-width="1"></line><rect class="up" x="573.5" y="199.8" width="9.0" height="14.3" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="199.9" y2="232.8" stroke-width="1"></line><rect class="down" x="633.5" y="199.9" width="9.0" height="32.5" rx="1"></rect><path class="vwap" d="M38.0,200.3L98.0,180.7L158.0,171.5L218.0,168.5L278.0,166.1L338.0,164.1L398.0,164.1L458.0,166.3L518.0,169.9L578.0,172.0L638.0,172.4"></path><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 0.59% below VWAP; 25% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 0.96x normal for this time of day</li><li>Day range is 0.40x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="ASML" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div><div class="row wl-row" role="button" tabindex="0" aria-expanded="false" data-ticker="AMD">
+      <span class="tick-name">AMD</span><span class="hide-sm"><svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="40.0" y2="40.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,17.6L20.0,0.0L40.0,4.5L60.0,15.3L80.0,7.6L100.0,9.7L120.0,18.1L140.0,28.0L160.0,21.4L180.0,18.3L200.0,21.8" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="21.800433839479364" r="2.6" fill="var(--gain)"></circle></svg></span>
+      <span class="num">561.35</span><span><span class="num gain">+1.52%</span></span>
+      <span class="hide-sm"><span class="num gain">+2.95%</span></span><span class="hide-sm hide-md"><span class="num gain">+2.52%</span></span>
+      <span class="hide-sm"><span class="num loss">−0.55%</span></span><span class="hide-sm hide-md">Inside</span>
+      <span class="num hide-sm hide-md">1.54</span>
+      <span class="hide-sm">Chop / range day: no edge in following <span class="muted num">· −21</span></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="wl-detail" id="wl-AMD" hidden="">
+        <div><svg class="candles" viewBox="0 0 720 280" role="img" aria-label="5-minute candles with VWAP and yesterday's close"><line class="grid" x1="8" x2="668" y1="258.0" y2="258.0"></line><text x="676" y="258.0" dominant-baseline="middle">552.96</text><line class="grid" x1="8" x2="668" y1="196.5" y2="196.5"></line><text x="676" y="196.5" dominant-baseline="middle">559.41</text><line class="grid" x1="8" x2="668" y1="135.0" y2="135.0"></line><text x="676" y="135.0" dominant-baseline="middle">565.87</text><line class="grid" x1="8" x2="668" y1="73.5" y2="73.5"></line><text x="676" y="73.5" dominant-baseline="middle">572.32</text><line class="grid" x1="8" x2="668" y1="12.0" y2="12.0"></line><text x="676" y="12.0" dominant-baseline="middle">578.78</text><line class="prev" x1="8" x2="668" y1="258.0" y2="258.0"></line><line class="down" x1="38.0" x2="38.0" y1="101.7" y2="239.5" stroke-width="1"></line><rect class="down" x="33.5" y="102.5" width="9.0" height="57.1" rx="1"></rect><line class="up" x1="98.0" x2="98.0" y1="54.9" y2="185.3" stroke-width="1"></line><rect class="up" x="93.5" y="82.3" width="9.0" height="74.6" rx="1"></rect><line class="down" x1="158.0" x2="158.0" y1="12.0" y2="119.4" stroke-width="1"></line><rect class="down" x="153.5" y="84.5" width="9.0" height="17.6" rx="1"></rect><line class="down" x1="218.0" x2="218.0" y1="55.1" y2="161.3" stroke-width="1"></line><rect class="down" x="213.5" y="104.1" width="9.0" height="45.5" rx="1"></rect><line class="up" x1="278.0" x2="278.0" y1="69.1" y2="184.4" stroke-width="1"></line><rect class="up" x="273.5" y="115.9" width="9.0" height="33.8" rx="1"></rect><line class="down" x1="338.0" x2="338.0" y1="95.7" y2="171.9" stroke-width="1"></line><rect class="down" x="333.5" y="116.9" width="9.0" height="8.2" rx="1"></rect><line class="down" x1="398.0" x2="398.0" y1="120.0" y2="178.9" stroke-width="1"></line><rect class="down" x="393.5" y="126.8" width="9.0" height="35.2" rx="1"></rect><line class="down" x1="458.0" x2="458.0" y1="153.4" y2="206.2" stroke-width="1"></line><rect class="down" x="453.5" y="162.0" width="9.0" height="43.2" rx="1"></rect><line class="up" x1="518.0" x2="518.0" y1="172.2" y2="219.5" stroke-width="1"></line><rect class="up" x="513.5" y="176.5" width="9.0" height="29.3" rx="1"></rect><line class="up" x1="578.0" x2="578.0" y1="157.6" y2="209.8" stroke-width="1"></line><rect class="up" x="573.5" y="162.5" width="9.0" height="13.2" rx="1"></rect><line class="down" x1="638.0" x2="638.0" y1="158.5" y2="186.4" stroke-width="1"></line><rect class="down" x="633.5" y="160.5" width="9.0" height="17.5" rx="1"></rect><path class="vwap" d="M38.0,166.9L98.0,157.5L158.0,146.7L218.0,144.2L278.0,142.7L338.0,142.1L398.0,142.6L458.0,144.7L518.0,147.0L578.0,148.1L638.0,148.3"></path><polygon class="mark" points="92,96.3122552759696 104,96.3122552759696 98,86.3122552759696"><title>15:40 confirmed gap LONG at 571.40</title></polygon><text x="38.0" y="274" text-anchor="middle">15:30</text><text x="398.0" y="274" text-anchor="middle">16:00</text></svg>
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+        <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px"><li>Price 0.55% below VWAP; 50% net of bars on one side</li><li>Still inside the 30-min opening range</li><li>Relative volume 1.54x normal for this time of day</li><li>Day range is 0.56x its 14-day ATR</li><li>SMH -2.08% today</li><li>Breadth across watchlist: -0.71 (−1 all down, +1 all up)</li><li>Scheduled catalyst today: trend days are more common on news days</li></ul>
+          <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="AMD" style="margin-top:12px"><li class="muted">Loading…</li></ul></div>
+      </div></div></section><section class="section" aria-labelledby="h-cal">
+    <div class="section-head"><h2 class="h-section" id="h-cal">Calendar</h2><p class="prose">From catalysts.csv plus earnings dates from Yahoo. Add your own events to catalysts.csv.</p></div>
+    <div class="cal"><div><h3 class="h-sub" style="margin-bottom:12px">Today</h3><div class="cal-item"><span class="label">All day</span><span>Nvidia CEO Jensen Huang resigns (unscheduled news)<br><span class="muted" style="font-size:13px">Whole sector (NVDA SMH AI chips)</span></span><span class="" style="font-size:13px">Very high</span></div><div class="cal-item"><span class="label">All day</span><span>AMAT earnings<br><span class="muted" style="font-size:13px">AMAT</span></span><span class="" style="font-size:13px">Very high</span></div></div>
+      <div><h3 class="h-sub" style="margin-bottom:12px">Next 3 weeks</h3><div class="cal-item"><span class="label">Tue 17 Nov · 22:00</span><span>Nvidia (NVDA) Q3 FY27 earnings (after US close)</span><span class="muted" style="font-size:13px">Very high · Confirmed</span></div><div class="cal-item"><span class="label">Wed 25 Nov · 20:00</span><span>Fed Beige Book</span><span class="muted" style="font-size:13px">Low · Confirmed</span></div></div></div></section></section>
+  <section class="page" id="page-log" data-page="log" hidden=""></section>
+  <section class="page" id="page-spread" data-page="spread" hidden=""></section>
+  <section class="page" id="page-backtest" data-page="backtest" hidden=""></section>
+  <section class="page" id="page-long" data-page="long" hidden=""></section>
+  <section class="page" id="page-guide" data-page="guide" hidden=""></section>
+</main>
+
+<footer class="wrap foot">
+  <p>Data: Yahoo Finance via yfinance, free and sometimes a few minutes late. Every number comes from past data and can stop working. Not financial advice.</p>
+</footer>
+
+<dialog class="drawer" id="drawer" aria-labelledby="drawerTitle">
+  <form method="dialog" class="drawer-inner" id="settingsForm">
+    <div class="drawer-head">
+      <h2 id="drawerTitle">Settings</h2>
+      <button class="icon-btn" value="cancel" aria-label="Close settings" formnovalidate="">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="settingsFields"></div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" type="button" id="resetSettings">Reset to defaults</button>
+      <button class="btn btn-primary" type="submit" value="apply">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/web/app.js?v=4" defer=""></script>
+
+
+</body></html>

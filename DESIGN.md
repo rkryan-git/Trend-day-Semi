@@ -166,3 +166,15 @@ before/after bars). Type follows the user's saved reference pages: dark = Inter 
 −0.045em tracking (Framer's Inter Display); light = Newsreader serif headlines with Geist Mono uppercase labels
 (Motion's serif + mono). Dark canvas is pure #000 as on framer.com. Theme: system by default, a 3-way toggle in the nav.
 The Streamlit app.py stays in the repo until the user approves the new UI.
+
+## 10. Liquid glass + motion (12 Nov 2026, user request)
+- Surfaces: translucent glass (`backdrop-filter: blur(22px) saturate(170%)`), 1px light edge, inset top highlight,
+  a pointer-following sheen on hover, lift on hover. Light glass rgba(255,255,255,.58); dark rgba(24,24,27,.52).
+- Behind the glass: three large, soft, slowly drifting colour fields (light: sand / sage / lilac; dark: low-alpha
+  blue / green / violet). Low alpha, blurred: atmosphere, not neon.
+- Layout: bento of glass blocks. Decision hero card, then one block per fact (filter, catalysts, stay out, also fired),
+  a featured radar gauge plus one mini-gauge card per watchlist stock (click to feature it), signal cards, sector
+  tiles, overnight cards, watchlist cards with an inline chart panel, calendar cards.
+- Motion: first load only (reveal on scroll with stagger, count-up numbers, gauge sweep, sparkline draw, meter grow);
+  the 60 s refresh never replays it. Liquid tab pill slides between tabs; page fade on tab switch; status dot pings.
+  Everything is off under prefers-reduced-motion.
