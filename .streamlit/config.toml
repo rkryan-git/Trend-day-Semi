@@ -1,0 +1,93 @@
+# Semi Trend-Day Radar theme. Source of truth: DESIGN.md (dark = Framer, light = Motion).
+# The light/dark sections keep the System / Light / Dark switch in the app menu.
+
+[server]
+enableStaticServing = true
+
+[client]
+toolbarMode = "viewer"
+
+[[theme.fontFaces]]
+family = "Inter"
+url = "app/static/fonts/Inter.woff2"
+weight = "100 900"
+
+[[theme.fontFaces]]
+family = "Geist"
+url = "app/static/fonts/Geist.woff2"
+weight = "100 900"
+
+[[theme.fontFaces]]
+family = "Newsreader"
+url = "app/static/fonts/Newsreader.woff2"
+weight = "200 800"
+
+[theme]
+font = "Inter, sans-serif"
+baseFontSize = 15
+baseFontWeight = 400
+metricValueFontSize = "2rem"
+metricValueFontWeight = 500
+headingFontSizes = ["40px", "26px", "19px", "16px", "14px", "13px"]
+showSidebarBorder = false
+linkUnderline = false
+
+# ---------------------------------------------------------------- dark: Framer
+[theme.dark]
+headingFont = "Geist, Inter, sans-serif"
+headingFontWeights = [500, 500, 500, 500, 500, 500]
+backgroundColor = "#090909"
+secondaryBackgroundColor = "#1C1C1C"
+textColor = "#FFFFFF"
+borderColor = "#262626"
+primaryColor = "#0099FF"            # selection state (checkbox, radio, slider); button fills are white via CSS
+linkColor = "#0099FF"
+greenColor = "#2EA043"
+redColor = "#F2555A"
+orangeColor = "#D29922"
+yellowColor = "#D29922"
+grayColor = "#999999"
+baseRadius = "8px"
+buttonRadius = "8px"
+showWidgetBorder = false
+dataframeBorderColor = "#1C1C1C"
+dataframeHeaderBackgroundColor = "#141414"
+dataframeHeaderTextColor = "#999999"
+codeBackgroundColor = "#141414"
+chartCategoricalColors = ["#FFFFFF", "#999999", "#0099FF", "#2EA043", "#F2555A", "#D29922"]
+
+[theme.dark.sidebar]
+backgroundColor = "#141414"
+secondaryBackgroundColor = "#1C1C1C"
+textColor = "#FFFFFF"
+borderColor = "#262626"
+
+# ----------------------------------------------------------------- light: Motion
+[theme.light]
+headingFont = "Newsreader, Georgia, serif"
+headingFontWeights = [400, 400, 400, 500, 500, 500]
+backgroundColor = "#F9F8F4"
+secondaryBackgroundColor = "#F1F0EB"
+textColor = "#000000"
+borderColor = "#DEDDD8"
+primaryColor = "#000000"
+linkColor = "#000000"
+greenColor = "#1A7F37"
+redColor = "#C4302B"
+orangeColor = "#9A6700"
+yellowColor = "#9A6700"
+grayColor = "#595853"
+baseRadius = "12px"
+buttonRadius = "full"
+showWidgetBorder = true
+dataframeBorderColor = "#F1F0EB"
+dataframeHeaderBackgroundColor = "#FFFFFF"
+dataframeHeaderTextColor = "#595853"
+codeBackgroundColor = "#F1F0EB"
+chartCategoricalColors = ["#000000", "#595853", "#1A7F37", "#C4302B", "#9A6700", "#8A8984"]
+
+[theme.light.sidebar]
+backgroundColor = "#F1F0EB"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#000000"
+borderColor = "#DEDDD8"

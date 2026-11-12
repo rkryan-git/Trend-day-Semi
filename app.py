@@ -17,6 +17,7 @@ import streamlit as st
 import data
 import metrics as m
 import setups as su
+import ui
 
 SETUP_COL_A = su.SETUP_A
 SETUP_COL_B = su.SETUP_B
@@ -67,7 +68,8 @@ HELP_BOTTOM = '''
 - The trend score in the Watchlist table is experimental.
 '''
 
-st.set_page_config(page_title="Semi Trend-Day Radar", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Semi Trend-Day Radar", page_icon=str(HERE / "static" / "favicon.svg"), layout="wide")
+ui.inject_css()   # once per full run, outside the auto-refresh fragment
 
 # ----------------------------------------------------------------------------
 # Sidebar
@@ -213,8 +215,8 @@ def bar_time_ams(session: pd.DataFrame, bar: int) -> str:
     return (session.index[bar] + pd.Timedelta(minutes=m.BAR_MINUTES)).tz_convert(AMS).strftime("%H:%M")
 
 
-STATE_ICON = {"triggered": "🟢", "waiting": "⏳", "no setup": "·", "stay out": "⛔"}
-LEVEL_ICON = {"High": "🔴 High", "Elevated": "🟠 Elevated", "Low": "⚪ Low"}
+STATE_WORD = {"triggered": "Triggered", "waiting": "Waiting", "no setup": "No setup", "stay out": "Stay out"}
+LEVEL_WORD = {"High": "High", "Elevated": "Elevated", "Low": "Low"}
 
 
 def price_chart(snap: m.Snapshot, marks: list) -> go.Figure:
@@ -244,9 +246,9 @@ def pct(x, d=2):
 # ----------------------------------------------------------------------------
 # Page
 # ----------------------------------------------------------------------------
-st.title("📈 Semi Trend-Day Radar")
+ui.wordmark()
 tab_live, tab_log, tab_spread, tab_bt, tab_long, tab_help = st.tabs(
-    ["Live", "Signal log", "Spread log", "Backtest (60 days)", "2-year check", "How to read this"])
+    ["Live", "Signal log", "Spread log", "Backtest (60 days)", "2-year check", "How to read this"], key="main_tabs")
 SPREAD_PATH = HERE / "spread_log.csv"
 
 
@@ -257,7 +259,14 @@ with tab_live:
         now_ny = now_ams.astimezone(NY)
         phase, status, color = market_status(now_ny)
         today_ny = now_ny.date()
-        st.markdown(f"**:{color}[{status}]**  ·  updated {now_ams:%H:%M:%S} (Amsterdam)")
+        _word = {"open": "Live", "pre": "Pre-market", "closed": "Closed", "weekend": "Weekend"}[phase]
+        st.html(f'<div class="stdr-top {ui.mode_marker()}"><span class="stdr-status"><b>{_word}</b> · '
+                f'updated {now_ams:%H:%M:%S} Amsterdam</span></div>')
+        decision_slot = st.container()     # filled after the setups are computed (DESIGN.md: decision first)
+        with decision_slot:
+            card_slot, why_slot = st.container(), st.container()
+        radar_slot = st.container()
+        st.divider()
 
         # ---- catalysts ---------------------------------------------------------
         cat = load_catalysts(WATCH)
@@ -312,51 +321,56 @@ with tab_live:
             if tk == "000660.KS" and not stale:
                 hynix_today = o["chg"]
 
-        # ---- big-day radar ---------------------------------------------------
-        st.subheader("Big-day radar")
-        st.caption("How likely a ±7% day is, from the warnings that came before past big days "
-                   f"(SNDK/MU/WDC, Nov 2024–Nov 2026: normally {su.BIG_DAY_RATES['base']}% of days; "
-                   f"{su.BIG_DAY_RATES['no warning']}% with no warning, {su.BIG_DAY_RATES['any warning']}% with one). "
-                   "It tells you how big the day may get, not which way.")
-        radar_rows = []
-        for t in WATCH:
-            sess = sess_all.get(t) or {}
-            days = sorted(sess)
-            if not days:
-                radar_rows.append({"Ticker": t, "Level": "—"})
-                continue
-            last_d = days[-1]
-            if last_d == today_ny and len(days) >= 2:      # today's session exists
-                prev_close = float(sess[days[-2]]["Close"].iloc[-1])
-                gap = (float(sess[last_d]["Open"].iloc[0]) / prev_close - 1) * 100
-                hist_until = days[-2]
-                gap_label = "gap"
-            else:                                           # before the open: use pre-market
-                prev_close = float(sess[last_d]["Close"].iloc[-1])
-                p = pre.get(t)
-                gap = (p / prev_close - 1) * 100 if p else None
-                hist_until = last_d
-                gap_label = "pre-market"
-            dd = dly.get(t)
-            hist = dd[[i <= hist_until for i in dd.index]] if dd is not None and not dd.empty else None
-            r = su.radar(hist, gap, hynix_today, catalyst_today, t in MEMORY)
-            radar_rows.append({
-                "Ticker": t, "Level": LEVEL_ICON[r.level], "Chance of ±7% day": f"~{r.chance:.0f}%",
-                "Gap / pre-mkt": pct(r.gap, 1) + ("" if r.gap is None else f" ({gap_label})"),
-                "Hynix": pct(r.hynix, 1) if t in MEMORY else "n/a",
-                "Volatility": "—" if r.vol_ratio is None else
-                    (f"rising {r.vol_ratio:.2f}×" if r.vol_ratio > 1.3 else f"calm {r.vol_ratio:.2f}×" if r.vol_ratio < 0.8 else f"normal {r.vol_ratio:.2f}×"),
-                "Yesterday": pct(r.yesterday, 1),
-                "Warnings": ", ".join(r.warnings) or "none",
-            })
-        st.dataframe(pd.DataFrame(radar_rows), hide_index=True, width="stretch")
+        with radar_slot:
+            # ---- big-day radar ---------------------------------------------------
+            st.subheader("Big-day radar")
+            st.caption("How likely a ±7% day is, from the warnings that came before past big days "
+                       f"(SNDK/MU/WDC, Nov 2024–Nov 2026: normally {su.BIG_DAY_RATES['base']}% of days; "
+                       f"{su.BIG_DAY_RATES['no warning']}% with no warning, {su.BIG_DAY_RATES['any warning']}% with one). "
+                       "It tells you how big the day may get, not which way.")
+            radar_rows = []
+            for t in WATCH:
+                sess = sess_all.get(t) or {}
+                days = sorted(sess)
+                if not days:
+                    radar_rows.append({"Ticker": t, "Level": "—"})
+                    continue
+                last_d = days[-1]
+                if last_d == today_ny and len(days) >= 2:      # today's session exists
+                    prev_close = float(sess[days[-2]]["Close"].iloc[-1])
+                    gap = (float(sess[last_d]["Open"].iloc[0]) / prev_close - 1) * 100
+                    hist_until = days[-2]
+                    gap_label = "gap"
+                else:                                           # before the open: use pre-market
+                    prev_close = float(sess[last_d]["Close"].iloc[-1])
+                    p = pre.get(t)
+                    gap = (p / prev_close - 1) * 100 if p else None
+                    hist_until = last_d
+                    gap_label = "pre-market"
+                dd = dly.get(t)
+                hist = dd[[i <= hist_until for i in dd.index]] if dd is not None and not dd.empty else None
+                r = su.radar(hist, gap, hynix_today, catalyst_today, t in MEMORY)
+                radar_rows.append({
+                    "Ticker": t, "Level": LEVEL_WORD[r.level], "Chance of ±7% day": float(r.chance),
+                    "Gap / pre-mkt": pct(r.gap, 1) + ("" if r.gap is None else f" ({gap_label})"),
+                    "Hynix": pct(r.hynix, 1) if t in MEMORY else "n/a",
+                    "Volatility": "—" if r.vol_ratio is None else
+                        (f"rising {r.vol_ratio:.2f}×" if r.vol_ratio > 1.3 else f"calm {r.vol_ratio:.2f}×" if r.vol_ratio < 0.8 else f"normal {r.vol_ratio:.2f}×"),
+                    "Yesterday": pct(r.yesterday, 1),
+                    "Warnings": ", ".join(r.warnings) or "none",
+                })
+            radar_df = pd.DataFrame(radar_rows)
+            st.dataframe(radar_df, hide_index=True, width="stretch", height=38 + 35 * len(radar_df),
+                         column_config={"Chance of ±7% day": st.column_config.ProgressColumn(
+                             "Chance of ±7% day", min_value=0, max_value=100, format="%.0f%%", color=ui.tok()["ink"])})
 
         # ---- setups -----------------------------------------------------------
         st.subheader("Setups")
         st.caption(f"**{su.SETUP_A}:** {su.RESEARCH[su.SETUP_A]['rule']}  \n"
                    f"**{su.SETUP_B}:** {su.RESEARCH[su.SETUP_B]['rule']}")
 
-        # market filter right now: SMH and QQQ vs their open and VWAP
+        # market filter right now: SMH and QQQ vs their open and VWAP (shown in the decision block)
+        filt = None
         mk_sess = sess_done.get("SMH") or {}
         mk_days = sorted(mk_sess)
         if mk_days and mk_days[-1] == today_ny and len(mk_sess[mk_days[-1]]) > 0:
@@ -365,39 +379,50 @@ with tab_live:
             day = ""
             if snaps.get("SMH") and snaps.get("QQQ"):
                 day = f" · vs yesterday's close (what the Sector tape shows): SMH {snaps['SMH'].chg:+.2f}%, QQQ {snaps['QQQ'].chg:+.2f}%"
-            if now_ctx.sector_ok:
-                st.success(f"Market filter: **longs allowed** · {now_ctx.sector_note}{day}")
-            elif now_ctx.sector_ok is False:
-                gap_fade = (snaps.get("SMH") and snaps["SMH"].chg > 0 and "SMH -" in now_ctx.sector_note) or \
-                           (snaps.get("QQQ") and snaps["QQQ"].chg > 0 and "QQQ -" in now_ctx.sector_note)
-                st.warning(f"Market filter: **longs blocked**: SMH and QQQ must both be above *today's open* and VWAP · "
-                           f"{now_ctx.sector_note}{day}"
-                           + (" · Up on the day but fading since the open: the gap-up-and-fade case the filter is built to catch."
-                              if gap_fade else ""))
-        elif phase == "pre":
-            st.info("Market filter checks SMH and QQQ from 15:30. A long only counts when both are above their open and VWAP.")
+            if now_ctx.sector_ok is not None:
+                gap_fade = now_ctx.sector_ok is False and bool(
+                    (snaps.get("SMH") and snaps["SMH"].chg > 0 and "SMH -" in now_ctx.sector_note) or
+                    (snaps.get("QQQ") and snaps["QQQ"].chg > 0 and "QQQ -" in now_ctx.sector_note))
+                _so = su.since_open_table(sess_all, ["SMH", "QQQ"], today_ny).set_index("Ticker")
+
+                def _open_pct(tk):
+                    try:
+                        return float(_so.loc[tk, "Since open %"])
+                    except Exception:
+                        return None
+                filt = {"ok": bool(now_ctx.sector_ok), "note": now_ctx.sector_note,
+                        "smh_open": _open_pct("SMH"), "qqq_open": _open_pct("QQQ"),
+                        "smh_day": snaps["SMH"].chg if snaps.get("SMH") else None,
+                        "qqq_day": snaps["QQQ"].chg if snaps.get("QQQ") else None,
+                        "extra": "Up on the day but fading since the open: the gap-up-and-fade case the filter is built to catch."
+                                 if gap_fade else ""}
 
         # ---- since the open / last 10 minutes ------------------------------------
         if any(sorted(sess_all.get(t) or {})[-1:] == [today_ny] for t in WATCH):
-            st.markdown("**Since the open**")
             mv = su.since_open_table(sess_all, ["SMH", "QQQ"] + [t for t in WATCH if t not in ("SMH", "QQQ")], today_ny)
+            _tk = ui.tok()
 
             def _clr(v):
                 if not isinstance(v, (int, float)) or pd.isna(v):
                     return ""
-                return "color: #d64545" if v < 0 else "color: #2e9e5b"
+                return f"color: {_tk['loss']}" if v < 0 else f"color: {_tk['gain']}"
             num = [c for c in ["Since open %", "Last 10 min %", "vs VWAP %"] if c in mv]
-            st.dataframe(mv.style.map(_clr, subset=num).format(precision=2, na_rep="—"), hide_index=True, width="stretch")
-            st.caption("Since open = vs today's 15:30 opening price (what the filter uses), not vs yesterday's close. "
-                       "Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.")
+            with why_slot:
+                why = st.expander("Why: since the open", key="why_since_open")
+                with why:
+                    st.dataframe(mv.style.map(_clr, subset=num).format(precision=2, na_rep="—"), hide_index=True,
+                                 width="stretch", height=38 + 35 * len(mv))
+                    st.caption("Since open = vs today's 15:30 opening price (what the filter uses), not vs yesterday's close. "
+                               "Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.")
 
         cols_setups = [(SETUP_COL_A, su.setup_a), (SETUP_COL_B, su.setup_b)] + ([(SETUP_COL_ORB, su.setup_orb)] if SHOW_ORB else [])
         setup_rows, triggered, marks, takes = [], [], {}, []
+        stay_out, fired = [], []
         for t in WATCH:
             sess = sess_done.get(t) or {}
             days = sorted(sess)
             if not days or days[-1] != today_ny or len(days) < 2 or len(sess[days[-1]]) == 0:
-                setup_rows.append({"Ticker": t, **{c: "⏳ waiting for today's open" for c, _ in cols_setups}})
+                setup_rows.append({"Ticker": t, **{c: "Waiting for today's open" for c, _ in cols_setups}})
                 continue
             s = sess[days[-1]]
             pc = float(sess[days[-2]]["Close"].iloc[-1])
@@ -405,7 +430,9 @@ with tab_live:
             row = {"Ticker": t}
             for col, fn in cols_setups:
                 st_ = fn(s, pc)
-                txt = f"{STATE_ICON[st_.state]} {st_.state}"
+                txt = STATE_WORD[st_.state]
+                if st_.state == "stay out" and t not in stay_out:
+                    stay_out.append(t)
                 if st_.state == "triggered":
                     ctx = su.context(sess_done, t, today_ny, st_.entry_bar, st_.direction, atr_pct)
                     side = "LONG" if st_.direction > 0 else "SHORT"
@@ -415,9 +442,10 @@ with tab_live:
                     if REQUIRE_SECTOR and ctx.sector_ok is not True:
                         blocked.append("SMH/QQQ not aligned")
                     passed = not blocked
-                    verdict = f"🟢 TAKE {side}" if passed else f"🟡 {side} signal, skip ({', '.join(blocked)})"
+                    verdict = f"TAKE {side}" if passed else f"{side} signal, skip ({', '.join(blocked)})"
+                    fired.append({"ticker": t, "setup": st_.setup, "blocked": blocked, "taken": False})
                     txt = f"{verdict} @ {st_.entry:,.2f} · now {pct(su.result_so_far(st_, s))}"
-                    row[col + " filters"] = (f"sector {'✓' if ctx.sector_ok else '✗'}"
+                    row[col + " filters"] = (f"sector {'ok' if ctx.sector_ok else 'not ok'}"
                                              + (f" · breadth {ctx.breadth}/3" if ctx.breadth is not None else "")
                                              + (f" · ATR used {ctx.atr_used:.2f}" if ctx.atr_used is not None else ""))
                     triggered.append([today_ny, t, st_, bar_time_ams(s, st_.entry_bar), ctx, passed, ""])
@@ -433,21 +461,34 @@ with tab_live:
 
         # ---- today's plan: one risk budget for the whole day --------------------
         plan = su.plan_day(takes, CAPITAL, RISK_DAY, STOP_PCT, SIZE_MODE)
-        if plan:
-            st.markdown("**Today's plan**")
-            exit_t = EXIT_LABEL.split("(")[-1].rstrip(")")
-            for p_ in plan:
-                side = "LONG" if p_["direction"] > 0 else "SHORT"
-                if p_["action"] == "take":
-                    st.markdown(f"- 🟢 **{p_['ticker']} {side}** ({p_['setup']}, {p_['entry_time']}): position "
-                                f"**€{p_['position_eur']:,.0f}** (margin ~€{p_['margin_eur_5to1']:,.0f} at 5:1), "
-                                f"risk €{p_['risk_eur']:,.2f}, stop **{p_['stop_price']:,.2f}**, exit {exit_t}")
-                else:
-                    st.markdown(f"- ⚪ {p_['ticker']} {side} ({p_['setup']}): {p_['action']}")
-            for item in triggered:      # record the plan decision in the log
-                match = next((p_ for p_ in plan if p_["ticker"] == item[1] and p_["setup"] == item[2].setup), None)
-                if match:
-                    item[6] = match["action"]
+        exit_t = EXIT_LABEL.split("(")[-1].rstrip(")")
+        for p_ in plan:
+            p_["exit_t"] = exit_t
+        for item in triggered:      # record the plan decision in the log
+            match = next((p_ for p_ in plan if p_["ticker"] == item[1] and p_["setup"] == item[2].setup), None)
+            if match:
+                item[6] = match["action"]
+        for f_ in fired:
+            f_["taken"] = any(p_["ticker"] == f_["ticker"] and p_["setup"] == f_["setup"] and p_["action"] == "take"
+                              for p_ in plan)
+            if not f_["blocked"] and not f_["taken"]:
+                f_["blocked"] = [next((p_["action"] for p_ in plan if p_["ticker"] == f_["ticker"]
+                                       and p_["setup"] == f_["setup"]), "not in today's plan")]
+        cat_lines = []
+        if not cat_today.empty:
+            for _, r_ in cat_today[cat_today["impact"] == "Very high"].iterrows():
+                cat_lines.append(str(r_["event"]))
+        logged_today = []
+        try:
+            _lg = su.read_log(LOG_PATH) if hasattr(su, "read_log") else pd.read_csv(LOG_PATH)
+            _lg = _lg[(_lg["date"].astype(str) == str(today_ny)) & (_lg["plan"].astype(str) == "take")]
+            logged_today = [f"TAKE {r_['ticker']} {r_['direction']} at {r_['entry_time_ams']}" for _, r_ in _lg.iterrows()]
+        except Exception:
+            pass
+        decision = ui.decide(phase, now_ny, plan, fired, filt, REQUIRE_SECTOR, stay_out, cat_lines, exit_t,
+                             SIZE_MODE, CAPITAL, RISK_DAY, logged_today)
+        with card_slot:
+            ui.render_decision(decision)
         if triggered:
             st.markdown("**What the research says about these signals:**")
             shown = set()
@@ -576,7 +617,7 @@ with tab_spread:
         sp_t = c1.selectbox("Stock", WATCH)
         sp_bid = c2.number_input("Sell price (bid)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
         sp_ask = c3.number_input("Buy price (ask)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
-        if st.form_submit_button("Save reading"):
+        if st.form_submit_button("Save reading", key="save_spread"):
             try:
                 _now = datetime.now(AMS)
                 su.add_spread(SPREAD_PATH, sp_t, sp_bid, sp_ask, _now, _now.astimezone(NY))
@@ -605,7 +646,7 @@ with tab_bt:
     st.markdown("Re-runs the setups on the last ~60 days of 5-minute data (the most Yahoo gives for free), split into "
                 "first and second half, and shows how each one did **with and without each filter**. A real edge should "
                 "be positive in both halves and after spread.")
-    if st.button("Run setup backtest", type="primary"):
+    if st.button("Run setup backtest", type="primary", key="run_bt"):
         with st.spinner("Downloading 60 days of 5-min data..."):
             tks = tuple(sorted(set(WATCH) | {"SMH", "QQQ"} | set(MEMORY)))
             intra60 = load_intraday(tks, "60d")
@@ -667,7 +708,7 @@ with tab_long:
                 "hourly data (Yahoo's limit for hourly bars). Use it every month or two to see whether the "
                 "patterns still hold.")
     long_watch = st.multiselect("Stocks", WATCH, default=[t for t in WATCH if t in MEMORY] or WATCH[:3])
-    if st.button("Run 2-year check", type="primary") and long_watch:
+    if st.button("Run 2-year check", type="primary", key="run_long") and long_watch:
         with st.spinner("Downloading ~2 years of daily and hourly data..."):
             dd = load_daily(tuple(sorted(long_watch)), "2y")
             hh = load_intraday(tuple(sorted(set(long_watch) | {"SMH", "QQQ"} | set(MEMORY))), "730d", "1h")
