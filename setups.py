@@ -193,6 +193,22 @@ def context(sessions: dict, ticker: str, d, j: int, direction: int, atr_pct: flo
     return Context(ok, note, breadth, atr_used)
 
 
+def drop_unfinished(sessions: dict, now) -> dict:
+    """Remove a still-forming last 5-min candle from every session.
+
+    Yahoo includes the current candle while it is building; its 'close' is just the latest price.
+    Setups, the market filter and the log must only see finished candles (a 16:30 decision uses the
+    candle that closes at 16:30, not a reading taken at 16:26). `now` is tz-aware."""
+    out = {}
+    for t, sess in sessions.items():
+        out[t] = {}
+        for d, s in (sess or {}).items():
+            if len(s) and s.index[-1] + pd.Timedelta(minutes=m.BAR_MINUTES) > now:
+                s = s.iloc[:-1]
+            out[t][d] = s
+    return out
+
+
 def since_open_table(sessions: dict, tickers: list, d) -> pd.DataFrame:
     """Per ticker, today: % since the open, % over the last 10 minutes, % vs VWAP.
     For SMH/QQQ also how much they must climb to pass the market filter (above open AND VWAP).
@@ -669,3 +685,52 @@ def long_study(daily: dict, hourly: dict, hynix: pd.DataFrame | None, tickers: l
     return {"warnings": warnings, "first_hour": pd.DataFrame(fh_rows).set_index("case"),
             "filters": pd.DataFrame(filt_rows).set_index("case"),
             "span": f"{R['date'].min()} → {R['date'].max()}", "stock_days": len(R), "base": round(base, 1)}
+
+
+# ----------------------------------------------------------------------------
+# Spread log: T212's real CFD spread by time of day (typed in by hand; T212's API has no CFD access)
+# ----------------------------------------------------------------------------
+SPREAD_COLS = ["time_ams", "ticker", "bid", "ask", "spread_pct", "window"]
+SPREAD_WINDOWS = ["15:30–15:40 (first 10 min)", "15:40–16:30", "16:30–21:30", "21:30–22:00 (last 30 min)", "outside US hours"]
+
+
+def spread_window(now_ny) -> str:
+    mins = now_ny.hour * 60 + now_ny.minute - 570
+    if now_ny.weekday() >= 5 or mins < 0 or mins >= 390:
+        return SPREAD_WINDOWS[4]
+    if mins < 10:
+        return SPREAD_WINDOWS[0]
+    if mins < 60:
+        return SPREAD_WINDOWS[1]
+    if mins < 360:
+        return SPREAD_WINDOWS[2]
+    return SPREAD_WINDOWS[3]
+
+
+def read_spreads(path: Path) -> pd.DataFrame:
+    try:
+        return pd.read_csv(path)[SPREAD_COLS]
+    except Exception:
+        return pd.DataFrame(columns=SPREAD_COLS)
+
+
+def add_spread(path: Path, ticker: str, bid: float, ask: float, now_ams, now_ny) -> pd.DataFrame:
+    if not (bid > 0 and ask > bid):
+        raise ValueError("Ask must be higher than bid, and both above zero.")
+    mid = (bid + ask) / 2
+    row = {"time_ams": now_ams.strftime("%Y-%m-%d %H:%M:%S"), "ticker": ticker, "bid": bid, "ask": ask,
+           "spread_pct": round((ask - bid) / mid * 100, 4), "window": spread_window(now_ny)}
+    df = pd.concat([read_spreads(path), pd.DataFrame([row])], ignore_index=True)
+    df.to_csv(path, index=False)
+    return df
+
+
+def spread_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Average spread % per ticker and time window. Buying at the ask and selling at the bid
+    costs the full spread once per round trip, so spread_pct is the round-trip cost."""
+    if df.empty:
+        return pd.DataFrame()
+    t = df.pivot_table(index="ticker", columns="window", values="spread_pct", aggfunc="mean").round(3)
+    t = t[[w for w in SPREAD_WINDOWS if w in t.columns]]
+    t["readings"] = df.groupby("ticker").size()
+    return t

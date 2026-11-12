@@ -245,8 +245,9 @@ def pct(x, d=2):
 # Page
 # ----------------------------------------------------------------------------
 st.title("📈 Semi Trend-Day Radar")
-tab_live, tab_log, tab_bt, tab_long, tab_help = st.tabs(
-    ["Live", "Signal log", "Backtest (60 days)", "2-year check", "How to read this"])
+tab_live, tab_log, tab_spread, tab_bt, tab_long, tab_help = st.tabs(
+    ["Live", "Signal log", "Spread log", "Backtest (60 days)", "2-year check", "How to read this"])
+SPREAD_PATH = HERE / "spread_log.csv"
 
 
 with tab_live:
@@ -288,6 +289,7 @@ with tab_live:
             ovn = load_overnight()
             pre = load_premarket(tuple(WATCH)) if phase == "pre" else {}
         sess_all = {t: m.split_sessions(df) for t, df in intra.items() if df is not None and not df.empty}
+        sess_done = su.drop_unfinished(sess_all, now_ny)   # finished candles only: setups, filter, log
         snaps = build_snapshots(sess_all, dly, list(all_us))
         sector_snap = snaps.get(SECTOR)
         breadth = m.breadth_of([snaps.get(t) for t in WATCH])
@@ -355,11 +357,11 @@ with tab_live:
                    f"**{su.SETUP_B}:** {su.RESEARCH[su.SETUP_B]['rule']}")
 
         # market filter right now: SMH and QQQ vs their open and VWAP
-        mk_sess = sess_all.get("SMH") or {}
+        mk_sess = sess_done.get("SMH") or {}
         mk_days = sorted(mk_sess)
-        if mk_days and mk_days[-1] == today_ny:
+        if mk_days and mk_days[-1] == today_ny and len(mk_sess[mk_days[-1]]) > 0:
             j_now = len(mk_sess[mk_days[-1]]) - 1
-            now_ctx = su.context(sess_all, "SMH", today_ny, j_now, 1, None)
+            now_ctx = su.context(sess_done, "SMH", today_ny, j_now, 1, None)
             day = ""
             if snaps.get("SMH") and snaps.get("QQQ"):
                 day = f" · vs yesterday's close (what the Sector tape shows): SMH {snaps['SMH'].chg:+.2f}%, QQQ {snaps['QQQ'].chg:+.2f}%"
@@ -392,9 +394,9 @@ with tab_live:
         cols_setups = [(SETUP_COL_A, su.setup_a), (SETUP_COL_B, su.setup_b)] + ([(SETUP_COL_ORB, su.setup_orb)] if SHOW_ORB else [])
         setup_rows, triggered, marks, takes = [], [], {}, []
         for t in WATCH:
-            sess = sess_all.get(t) or {}
+            sess = sess_done.get(t) or {}
             days = sorted(sess)
-            if not days or days[-1] != today_ny or len(days) < 2:
+            if not days or days[-1] != today_ny or len(days) < 2 or len(sess[days[-1]]) == 0:
                 setup_rows.append({"Ticker": t, **{c: "⏳ waiting for today's open" for c, _ in cols_setups}})
                 continue
             s = sess[days[-1]]
@@ -405,7 +407,7 @@ with tab_live:
                 st_ = fn(s, pc)
                 txt = f"{STATE_ICON[st_.state]} {st_.state}"
                 if st_.state == "triggered":
-                    ctx = su.context(sess_all, t, today_ny, st_.entry_bar, st_.direction, atr_pct)
+                    ctx = su.context(sess_done, t, today_ny, st_.entry_bar, st_.direction, atr_pct)
                     side = "LONG" if st_.direction > 0 else "SHORT"
                     blocked = []
                     if LONG_ONLY and st_.direction < 0:
@@ -462,7 +464,7 @@ with tab_live:
 
         # ---- signal log ---------------------------------------------------------
         try:
-            su.update_log(LOG_PATH, [tuple(x) for x in triggered], sess_all, EXIT_BEFORE)
+            su.update_log(LOG_PATH, [tuple(x) for x in triggered], sess_done, EXIT_BEFORE)
         except Exception as e:  # never break the live view over the log
             st.caption(f"Couldn't update signal_log.csv: {e}")
 
@@ -556,6 +558,41 @@ with tab_log:
         st.download_button("Download signal_log.csv", log.to_csv(index=False), "signal_log.csv", "text/csv")
     st.caption("Results are % moves of the stock from entry to the close; 'after spread' subtracts your spread setting. "
                "The log doesn't apply the 3% stop.")
+
+
+with tab_spread:
+    st.markdown("Measures what T212 really charges you. Every result in this app subtracts one fixed spread "
+                f"(**{SPREAD:.2f}%** in the sidebar), but the real CFD spread changes during the day and is usually widest "
+                "right at the open. T212 offers no CFD data feed, so type the **Sell (bid)** and **Buy (ask)** prices "
+                "from the T212 order screen. A few readings at 15:30, 15:40, 16:30 and 21:30 over a week is enough.")
+    with st.form("spread_form", clear_on_submit=True):
+        c1, c2, c3 = st.columns(3)
+        sp_t = c1.selectbox("Stock", WATCH)
+        sp_bid = c2.number_input("Sell price (bid)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
+        sp_ask = c3.number_input("Buy price (ask)", min_value=0.0, value=0.0, step=0.01, format="%.2f")
+        if st.form_submit_button("Save reading"):
+            try:
+                _now = datetime.now(AMS)
+                su.add_spread(SPREAD_PATH, sp_t, sp_bid, sp_ask, _now, _now.astimezone(NY))
+                st.success(f"Saved: {sp_t} spread {(sp_ask - sp_bid) / ((sp_ask + sp_bid) / 2) * 100:.3f}%")
+            except ValueError as e:
+                st.error(str(e))
+    spreads = su.read_spreads(SPREAD_PATH)
+    if spreads.empty:
+        st.caption("No readings yet.")
+    else:
+        summ = su.spread_summary(spreads)
+        st.subheader("Average round-trip spread (%) by time of day")
+        st.dataframe(summ, width="stretch")
+        worst = float(spreads["spread_pct"].mean())
+        verdict = ("🟢 Your readings average **{:.2f}%**, at or below your {:.2f}% setting: the backtest costs are realistic."
+                   if worst <= SPREAD + 0.02 else
+                   "🔴 Your readings average **{:.2f}%**, above your {:.2f}% setting: results in this app are too rosy. "
+                   "Raise the spread setting in the sidebar to match.").format(worst, SPREAD)
+        st.markdown(verdict)
+        st.caption("For comparison, the tested edges were about +1.1 to +1.2% per trade before costs.")
+        with st.expander("All readings"):
+            st.dataframe(spreads.sort_values("time_ams", ascending=False), hide_index=True, width="stretch")
 
 
 with tab_bt:
