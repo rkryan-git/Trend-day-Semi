@@ -157,3 +157,12 @@ no dual-axis charts, no colour-only meaning, no new data or claims.
   not re-sent every 60 s.
 - `requirements.txt`: `streamlit>=1.67` (per-mode theme sections and fontFaces need it).
 - Font files: Inter, Geist, Newsreader woff2 from Google Fonts (OFL), stored in `static/fonts/`.
+
+## 9. Implementation (12 Nov 2026, after the user's "still looks very AI" feedback)
+The look is no longer built on Streamlit widgets. `server.py` (Starlette, already installed with Streamlit) serves a
+hand-built page in `web/` (index.html, app.css, app.js, self-hosted fonts) and JSON from `engine.py`, which runs the
+unchanged trading logic in setups.py / metrics.py / data.py. Charts are hand-drawn SVG (gauge, sparklines, candles,
+before/after bars). Type follows the user's saved reference pages: dark = Inter with optical sizing at weight 600 and
+−0.045em tracking (Framer's Inter Display); light = Newsreader serif headlines with Geist Mono uppercase labels
+(Motion's serif + mono). Dark canvas is pure #000 as on framer.com. Theme: system by default, a 3-way toggle in the nav.
+The Streamlit app.py stays in the repo until the user approves the new UI.

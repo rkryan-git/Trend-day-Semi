@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semi Trend-Day Radar</title>
+<meta name="description" content="Live decision desk for MU, SNDK, WDC, LRCX, AMAT, ASML and AMD: big-day radar, two tested setups, sizing and a signal log.">
+<link rel="icon" href="/web/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/web/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+  /* theme before first paint: system unless the user picked one */
+  (function () {
+    try {
+      var t = localStorage.getItem("stdr.theme") || "system";
+      var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+      document.documentElement.dataset.themeChoice = t;
+    } catch (e) { document.documentElement.dataset.theme = "dark"; }
+  })();
+</script>
+<link rel="stylesheet" href="/web/app.css?v=3">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#live" aria-label="Semi Trend-Day Radar, Live">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18a9 9 0 0 1 18 0" /><path d="M7.5 18a4.5 4.5 0 0 1 9 0" /><circle cx="12" cy="18" r="1.6" /></svg>
+      <span class="brand-name">Semi Trend-Day Radar</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#live" data-tab="live">Live</a>
+      <a href="#log" data-tab="log">Signal log</a>
+      <a href="#spread" data-tab="spread">Spread log</a>
+      <a href="#backtest" data-tab="backtest">Backtest</a>
+      <a href="#long" data-tab="long">2-year check</a>
+      <a href="#guide" data-tab="guide">Guide</a>
+    </nav>
+    <div class="nav-tools">
+      <span class="status" id="status" aria-live="polite"><i class="dot"></i><span>Loading</span></span>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme: system"></button>
+      <button class="btn btn-primary btn-sm" id="settingsBtn" type="button">Settings</button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="page" id="page-live" data-page="live"></section>
+  <section class="page" id="page-log" data-page="log" hidden></section>
+  <section class="page" id="page-spread" data-page="spread" hidden></section>
+  <section class="page" id="page-backtest" data-page="backtest" hidden></section>
+  <section class="page" id="page-long" data-page="long" hidden></section>
+  <section class="page" id="page-guide" data-page="guide" hidden></section>
+</main>
+
+<footer class="wrap foot">
+  <p>Data: Yahoo Finance via yfinance, free and sometimes a few minutes late. Every number comes from past data and can stop working. Not financial advice.</p>
+</footer>
+
+<dialog class="drawer" id="drawer" aria-labelledby="drawerTitle">
+  <form method="dialog" class="drawer-inner" id="settingsForm">
+    <div class="drawer-head">
+      <h2 id="drawerTitle">Settings</h2>
+      <button class="icon-btn" value="cancel" aria-label="Close settings" formnovalidate>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="settingsFields"></div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" type="button" id="resetSettings">Reset to defaults</button>
+      <button class="btn btn-primary" type="submit" value="apply">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/web/app.js?v=4" defer></script>
+</body>
+</html>
