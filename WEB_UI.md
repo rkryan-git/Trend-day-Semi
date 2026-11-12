@@ -3,8 +3,8 @@
 The trading logic is unchanged (setups.py, metrics.py, data.py, catalysts.csv). The Streamlit screen is replaced by a
 hand-built web page:
 
-- `server.py`  Starlette server (ships with Streamlit, no new installs). Run: `python server.py` (http://127.0.0.1:8501)
-               or `python server.py --port 8765`.
+- `server.py`  Starlette server Run: `python server.py` (http://127.0.0.1:8765)
+               or `python server.py --port 9000`. Needs starlette + uvicorn (in requirements.txt).
 - `engine.py`  Runs the same live logic as app.py and returns JSON: decision, market filter, radar per stock, setups,
                plan, signal-log update, sector tape, overnight, watchlist, calendar; plus backtest, 2-year check,
                signal log and spread log endpoints.

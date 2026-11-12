@@ -1,6 +1,8 @@
-# Semi Trend-Day Radar (v5)
+# Semi Trend-Day Radar (v7)
 
 A local dashboard for your semis (MU, SNDK, WDC, LRCX, AMAT, ASML, AMD). It warns you about likely big-move days, shows the two setups that held up in testing, and logs every signal so you build a real track record.
+
+v7 replaces the Streamlit screen with a hand-built web page (see `WEB_UI.md`). The trading rules are unchanged: `setups.py`, `metrics.py` and `data.py` are the same as v6.
 
 ## Setup (once)
 
@@ -17,10 +19,20 @@ pip install -r requirements.txt
 ## Run
 
 ```
-streamlit run app.py
+python server.py
 ```
 
-It opens at http://localhost:8501 and refreshes itself every 60 s. Keep it open during US hours so the signal log fills up.
+Then open http://127.0.0.1:8765. It refreshes itself every 60 s. Keep it open during US hours so the signal log fills up.
+
+- `python server.py --port 9000` runs it on another port.
+- The old Streamlit screen still works with `streamlit run app.py` (http://localhost:8501), so both can run side by side. Don't keep both open during US hours: they write to the same `signal_log.csv`.
+
+## New in v7
+
+- **Web UI:** a single page instead of Streamlit, same data and same rules.
+- **"Too late to enter":** a TAKE is shown as a TAKE only for the first 10 minutes after its signal candle closes. After that the headline says the signal has passed and shows how far the price has moved since the tested entry. Buying later is a different, untested trade. If you are already in, it still shows your stop and exit.
+
+The sections below describe the tabs and the earlier versions; the web page has the same sections.
 
 ## Tabs
 

@@ -115,7 +115,7 @@ values in ink (never in the series colour), sign + arrow on every %.
      risk figure instead).
   7. Done for the day — "No TAKE today" after 16:30 with no taken signal
   8. Stay out — the app's existing "stay out" state for a ticker/day, worded as "Stay out: <reason>"
-  **Headline precedence** when several are true: closed > TAKE > longs blocked > signal skipped > waiting > done.
+  **Headline precedence** when several are true: closed > TAKE (first 10 min after the signal) > too late to enter > longs blocked > signal skipped > waiting > done.
   "Stay out" is a per-ticker state of the 16:30 setup, shown as a line under the headline ("Stay out: MU, WDC –
   first hour went against the gap"), never the day's headline.
   The decision block is the **only** place for size, margin, risk, stop and exit.

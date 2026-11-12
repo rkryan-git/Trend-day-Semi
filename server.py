@@ -1,7 +1,7 @@
 """Semi Trend-Day Radar web app.
 
-Run:  python server.py            (opens on http://127.0.0.1:8501)
-      python server.py --port 8765
+Run:  python server.py            (opens on http://127.0.0.1:8765)
+      python server.py --port 9000
 """
 from __future__ import annotations
 
@@ -118,7 +118,7 @@ app = Starlette(routes=[
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8501)
+    ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     a = ap.parse_args()
     print(f"Semi Trend-Day Radar on http://{a.host}:{a.port}")

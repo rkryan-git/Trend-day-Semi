@@ -325,3 +325,7 @@ h3.h-sub { font-family: var(--body); font-size: 15px; font-weight: 600; letter-s
   .section { padding-top: 48px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* A TAKE whose entry window has passed: kept for people already in, visibly not a call to act */
+.ticket-late { opacity: 0.6; }
+.ticket-late .ticket-who strong { color: var(--caution, inherit); font-weight: 600; }

@@ -406,7 +406,9 @@ def live(s: Settings) -> dict:
                 if passed:
                     takes.append({"ticker": t, "setup": st_.setup, "direction": st_.direction, "entry": st_.entry,
                                   "entry_bar": st_.entry_bar, "atr_pct": atr_pct,
-                                  "entry_time": bar_time_ams(sx, st_.entry_bar)})
+                                  "entry_time": bar_time_ams(sx, st_.entry_bar),
+                                  "signal_at": sx.index[st_.entry_bar] + pd.Timedelta(minutes=m.BAR_MINUTES),
+                                  "now": now_r})
             cells.append(cell)
         setup_rows.append({"ticker": t, "cells": cells})
 
@@ -498,16 +500,28 @@ def live(s: Settings) -> dict:
     return out
 
 
+LATE_MIN = 10   # minutes after the signal candle closes; after that the tested entry is gone
+
+
 def decide(phase, now_ny, plan, fired, filt, s: Settings, stay_out, catalysts, logged_today) -> dict:
-    """Headline precedence (DESIGN.md): closed > TAKE > longs blocked > signal skipped > waiting > done."""
+    """Headline precedence (DESIGN.md): closed > TAKE > too late > longs blocked > signal skipped > waiting > done.
+
+    A TAKE is only actionable for LATE_MIN minutes after its signal candle closes. After that the
+    headline says the signal has passed: buying later is a different, untested trade (other price,
+    other distance to the stop), and a headline that keeps saying "Take" all afternoon invites it."""
     takes = [dict(p) for p in plan if p.get("action") == "take"]
     for p in takes:
         p["side"] = "LONG" if p["direction"] > 0 else "SHORT"
-        for k in ("entry", "position_eur", "margin_eur_5to1", "risk_eur", "stop_price"):
+        at = p.pop("signal_at", None)
+        age = (now_ny - at).total_seconds() / 60 if at is not None else 0.0
+        p["age_min"] = int(max(age, 0))
+        p["late"] = age > LATE_MIN
+        for k in ("entry", "position_eur", "margin_eur_5to1", "risk_eur", "stop_price", "now"):
             if k in p:
                 p[k] = clean(p[k])
         p.pop("atr_pct", None)
         p.pop("entry_bar", None)
+    fresh = [p for p in takes if not p["late"]]
     t = now_ny.time()
     d = {"state": "", "head": "", "tone": "", "sub": "", "takes": takes, "exit": s.exit_time,
          "size_mode": s.size_mode, "budget": round(s.capital * s.risk_day / 100, 2),
@@ -518,12 +532,21 @@ def decide(phase, now_ny, plan, fired, filt, s: Settings, stay_out, catalysts, l
                  sub=("Weekend. The next session opens Monday at 15:30 your time." if phase == "weekend" else
                       f"Today's session is over: {', '.join(logged_today) if logged_today else 'no TAKE today'}. "
                       "The next session opens at 15:30 your time."))
-    elif takes:
-        sides = sorted({p["side"] for p in takes})
-        names = [p["ticker"] for p in takes]
-        head = f"{len(takes)} TAKEs today" if len(takes) >= 3 else f"Take {' & '.join(names)} {'/'.join(sides).lower()}"
+    elif fresh:
+        sides = sorted({p["side"] for p in fresh})
+        names = [p["ticker"] for p in fresh]
+        left = max(LATE_MIN - min(p["age_min"] for p in fresh), 0)
+        head = f"{len(fresh)} TAKEs now" if len(fresh) >= 3 else f"Take {' & '.join(names)} {'/'.join(sides).lower()}"
         d.update(state="take", head=head, tone="gain",
-                 sub=f"Hold to your exit at {s.exit_time}. Check T212's live spread before you enter.")
+                 sub=f"Enter within about {left} min at a price near the entry below, then hold to your exit at "
+                     f"{s.exit_time}. Check T212's live spread first.")
+    elif takes:
+        p = takes[0]
+        moved = f", now {p['now']:+.2f}% from there" if p.get("now") is not None else ""
+        d.update(state="late", head=f"{p['ticker']} signal was at {p['entry_time']}: too late to enter", tone="muted",
+                 sub=f"The tested entry was {p['entry']:,.2f} at {p['entry_time']}{moved}. Buying now is a different, "
+                     f"untested trade: another price and another distance to the stop. Already in? Keep the stop at "
+                     f"{p['stop_price']:,.2f} and exit at {s.exit_time}.")
     elif filt is not None and filt.get("ok") is False and s.require_sector:
         d.update(state="blocked", head="Longs blocked", tone="loss",
                  sub="SMH and QQQ must both be above today's open and VWAP before a long counts.")

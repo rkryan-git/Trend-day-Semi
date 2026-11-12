@@ -251,13 +251,13 @@ function renderLive(d) {
 
   // ---- decision hero
   const tickets = (D.takes || []).map((p) => `
-    <div class="ticket"><div class="ticket-row">
+    <div class="ticket${p.late ? " ticket-late" : ""}"><div class="ticket-row">
       <div><span class="label">Position</span><span class="val" data-count="${p.position_eur}" data-fmt="eur0">${eur(p.position_eur)}</span></div>
       <div><span class="label">Margin 5:1</span><span class="val" data-count="${p.margin_eur_5to1}" data-fmt="eur0">${eur(p.margin_eur_5to1)}</span></div>
       <div><span class="label">Risk</span><span class="val" data-count="${p.risk_eur}" data-fmt="eur2">${eur(p.risk_eur, 2)}</span></div>
       <div><span class="label">Stop</span><span class="val" data-count="${p.stop_price}" data-fmt="n2">${fmt(p.stop_price)}</span></div>
       <div><span class="label">Exit</span><span class="val">${esc(D.exit)}</span></div>
-    </div><div class="ticket-who">${esc(p.ticker)} ${p.side} · ${esc(p.setup)} · entry ${fmt(p.entry)} at ${esc(p.entry_time)}</div></div>`).join("");
+    </div><div class="ticket-who">${p.late ? `<strong>Signal passed ${esc(String(p.age_min))} min ago, don't enter now</strong> · ` : ""}${esc(p.ticker)} ${p.side} · ${esc(p.setup)} · entry ${fmt(p.entry)} at ${esc(p.entry_time)}${isNum(p.now) ? ` · now ${pct(p.now)} from entry` : ""}</div></div>`).join("");
   const hero = `<section class="hero" data-tone="${D.tone}" aria-labelledby="decision">
     <div class="glass hero-card ${rv()}">
       <div class="hero-meta"><span class="label">${esc(today)}</span><span class="label">${esc(phaseWord[d.phase])}</span><span class="label">Updated ${esc(d.updated)}</span></div>
