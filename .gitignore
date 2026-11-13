@@ -6,3 +6,8 @@ spread_log.csv
 .impeccable/
 invest_log.csv
 exits_trades.csv
+push_vapid.pem
+push_subs.json
+push_state.json
+*.tmp
+server.log

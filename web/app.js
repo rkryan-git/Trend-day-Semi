@@ -762,6 +762,7 @@ function renderSettings() {
       ${field("When several signals fire", seg("size_mode", [["one", "One trade per day"], ["split", "Split the day's risk"]]), "One trade: the earliest signal, ties go to the calmest stock. Split: signals at the same time share the budget; later ones are skipped.")}
     </div>
     <div class="group">${sw("sound", "Sound when switching between CFD and Invest")}</div>
+    <div class="group" id="pushBlock"></div>
     <p class="muted" style="font-size:12px;margin:0">Signals are written to signal_log.csv next to the app. Not financial advice.</p>`;
 }
 document.addEventListener("click", (e) => {
@@ -874,7 +875,7 @@ async function init() {
   try { LOGOS = await (await fetch("/web/logos/manifest.json")).json(); } catch (e) { LOGOS = {}; }
   if (!SCHEMA.exit_options.includes(S.exit)) S.exit = SCHEMA.exit_options[0] || "";
   const dlg = $("#drawer");
-  $("#settingsBtn").onclick = () => { renderSettings(); dlg.showModal(); };
+  $("#settingsBtn").onclick = () => { renderSettings(); dlg.showModal(); if (typeof renderPushBlock === "function") renderPushBlock(); };
   dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
   $("#resetSettings").onclick = () => { S = { ...DEFAULTS, exit: SCHEMA.exit_options[0] || "" }; renderSettings(); };
   $("#settingsForm").addEventListener("submit", (e) => {

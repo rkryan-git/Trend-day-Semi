@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
@@ -16,6 +17,7 @@ from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 import engine
+import notify
 
 WEB = Path(__file__).parent / "web"
 
@@ -124,8 +126,43 @@ async def api_long(request):
         return err(e)
 
 
-app = Starlette(routes=[
+async def sw(request):
+    return FileResponse(WEB / "sw.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
+
+async def api_push(request):
+    try:
+        part = request.path_params["part"]
+        if part == "key":
+            return JSONResponse({"key": await run(notify.public_key)})
+        if part == "status":
+            return JSONResponse(notify.status(request.query_params.get("endpoint", "")))
+        if part == "test" and request.method == "POST":
+            return JSONResponse(await run(notify.test))
+        if part == "subscribe":
+            body = await request.json()
+            if request.method == "DELETE":
+                return JSONResponse(notify.unsubscribe(str(body.get("endpoint", ""))))
+            return JSONResponse(notify.subscribe(body.get("sub"), str(body.get("qs", ""))))
+        return err(ValueError("Unknown push action."), 404)
+    except ValueError as e:
+        return err(e, 400)
+    except Exception as e:
+        return err(e)
+
+
+@asynccontextmanager
+async def lifespan(app):
+    task = asyncio.create_task(notify.loop())
+    yield
+    task.cancel()
+
+
+app = Starlette(lifespan=lifespan, routes=[
     Route("/", index),
+    Route("/sw.js", sw),
+    Route("/api/push/{part}", api_push, methods=["GET", "POST", "DELETE"]),
     Route("/api/live", api_live),
     Route("/api/schema", api_schema),
     Route("/api/news/{ticker}", api_news),
