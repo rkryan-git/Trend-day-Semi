@@ -24,10 +24,11 @@ const eurS = (x) => (isNum(x) ? (x >= 0 ? "+" : MINUS) + "€" + Math.abs(x).toL
 
 async function renderExits(msg = "") {
   const p = $("#page-invest-exits");
-  const upload = `<label class="btn btn-primary" for="exitsFile">${investExits && !investExits.empty ? "Upload a newer export" : "Upload your T212 export"}</label>
-    <input type="file" id="exitsFile" accept=".csv,text/csv" hidden>`;
+  const upload = `<label class="btn btn-primary" for="exitsFile">${investExits && !investExits.empty ? "Add another export" : "Upload your T212 export"}</label>
+    <input type="file" id="exitsFile" accept=".csv,text/csv" multiple hidden>
+    ${investExits && !investExits.empty ? '<button class="btn btn-ghost" type="button" id="exitsClear">Remove all</button>' : ""}`;
   const how = `<ol class="steps"><li>In Trading 212, open your <b>Invest</b> account → <b>History</b> → the download icon → <b>Export CSV</b>.</li>
-    <li>Pick a range that covers your sells (up to 12 months per export; add older ones later).</li>
+    <li>Tick <b>Orders</b> (dividends and deposits aren't needed). Pick up to 12 months; for older sells, add another export. They combine.</li>
     <li>Upload the file here. It stays on this computer as exits_trades.csv and is never added to git or a zip.</li></ol>`;
   if (!investExits) { p.innerHTML = '<p class="loading">Loading your exits…</p>'; try { investExits = await api("/api/exits"); } catch (e) { investExits = { empty: true, error: e.message }; } }
   const d = investExits;
@@ -60,11 +61,15 @@ async function renderExits(msg = "") {
   }
   const inp = $("#exitsFile");
   if (inp) inp.onchange = async () => {
-    const f = inp.files[0];
-    if (!f) return;
+    const files = [...inp.files];
+    if (!files.length) return;
     $("#exitsMsg").textContent = "Reading your export and fetching prices…";
-    try { investExits = await api("/api/exits", { method: "POST", headers: { "Content-Type": "text/csv" }, body: await f.text() }); renderExits(`Loaded ${f.name}.`); }
-    catch (e) { $("#exitsMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+    try {
+      for (const f of files) investExits = await api("/api/exits", { method: "POST", headers: { "Content-Type": "text/csv" }, body: await f.text() });
+      renderExits(`Added ${files.map((f) => f.name).join(", ")}. Exports are combined; duplicates are skipped.`);
+    } catch (e) { $("#exitsMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
   };
+  const clr = $("#exitsClear");
+  if (clr) clr.onclick = async () => { investExits = await api("/api/exits", { method: "DELETE" }); renderExits("Removed. Nothing is stored now."); };
 }
 let investExits = null;

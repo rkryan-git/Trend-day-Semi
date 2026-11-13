@@ -65,6 +65,8 @@ async def api_exits(request):
             if len(raw) > 5_000_000:
                 return err(ValueError("File too large."), 400)
             return JSONResponse(await run(engine.save_exits, raw.decode("utf-8-sig", errors="replace")))
+        if request.method == "DELETE":
+            return JSONResponse(await run(engine.clear_exits))
         return JSONResponse(await run(engine.exits))
     except ValueError as e:
         return err(e, 400)
@@ -128,7 +130,7 @@ app = Starlette(routes=[
     Route("/api/schema", api_schema),
     Route("/api/news/{ticker}", api_news),
     Route("/api/invest", api_invest),
-    Route("/api/exits", api_exits, methods=["GET", "POST"]),
+    Route("/api/exits", api_exits, methods=["GET", "POST", "DELETE"]),
     Route("/api/log", api_log),
     Route("/api/log.csv", api_log_csv),
     Route("/api/spread", api_spread, methods=["GET", "POST"]),

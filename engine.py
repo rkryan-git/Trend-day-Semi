@@ -786,9 +786,25 @@ def _yahoo_symbols(ticker: str, currency: str) -> list:
 
 
 def save_exits(text: str) -> dict:
+    """Add an export to what's already stored: several 12-month exports combine, duplicates are dropped."""
+    from io import StringIO
     parse_t212(text)                                  # validate before saving
-    EXITS_FILE.write_text(text, encoding="utf-8")
+    new = pd.read_csv(StringIO(text), dtype=str)
+    if EXITS_FILE.exists():
+        old = pd.read_csv(EXITS_FILE, dtype=str)
+        both = pd.concat([old, new], ignore_index=True)
+        key = _col(both, "id")
+        both = both.drop_duplicates(subset=[key] if key else None)
+    else:
+        both = new
+    both.to_csv(EXITS_FILE, index=False)
     return exits()
+
+
+def clear_exits() -> dict:
+    if EXITS_FILE.exists():
+        EXITS_FILE.unlink()
+    return {"empty": True}
 
 
 def exits() -> dict:
