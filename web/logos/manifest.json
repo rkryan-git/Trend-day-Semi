@@ -1,0 +1,62 @@
+{
+ "MU": {
+  "name": "Micron",
+  "color": "#0090C0",
+  "badge": "light"
+ },
+ "SNDK": {
+  "name": "Sandisk",
+  "color": "#D80000",
+  "badge": "light"
+ },
+ "WDC": {
+  "name": "Western Digital",
+  "color": "#006090",
+  "badge": "light"
+ },
+ "LRCX": {
+  "name": "Lam Research",
+  "color": "#004890",
+  "badge": "light"
+ },
+ "AMAT": {
+  "name": "Applied Materials",
+  "color": "#0090C0",
+  "badge": "light"
+ },
+ "ASML": {
+  "name": "ASML",
+  "color": "#001878",
+  "badge": "light"
+ },
+ "AMD": {
+  "name": "AMD",
+  "color": "#00A860",
+  "badge": "light"
+ },
+ "NVDA": {
+  "name": "Nvidia",
+  "color": "#78A800",
+  "badge": "light"
+ },
+ "TSM": {
+  "name": "TSMC",
+  "color": "#D80000",
+  "badge": "light"
+ },
+ "SMH": {
+  "name": "VanEck Semiconductor ETF",
+  "color": "#0062A1",
+  "badge": "dark"
+ },
+ "QQQ": {
+  "name": "Invesco QQQ (Nasdaq-100)",
+  "color": "#3B5BDB",
+  "badge": "dark"
+ },
+ "SOXX": {
+  "name": "iShares Semiconductor ETF",
+  "color": "#0060A8",
+  "badge": "light"
+ }
+}

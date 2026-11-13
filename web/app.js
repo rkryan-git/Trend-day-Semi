@@ -52,8 +52,20 @@ function applyTheme(choice) {
 let themeChoice = (() => { try { return localStorage.getItem("stdr.theme") || "system"; } catch (e) { return "system"; } })();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => themeChoice === "system" && applyTheme("system"));
 
+// ------------------------------------------------------------------ logos
+let LOGOS = {};
+function logo(t, cls = "") {
+  const m = LOGOS[t];
+  if (!m) return `<span class="logo mono ${cls}" aria-hidden="true">${esc(String(t || "?")[0])}</span>`;
+  return `<span class="logo ${m.badge} ${cls}" aria-hidden="true"><img src="/web/logos/${encodeURIComponent(t)}.png" alt="" loading="lazy" decoding="async"></span>`;
+}
+const brand = (t) => (LOGOS[t] && LOGOS[t].color) || null;
+const coName = (t) => (LOGOS[t] && LOGOS[t].name) || "";
+const deltaPill = (x, d = 2) => (isNum(x) ? `<span class="delta ${tone(x)}"><span aria-hidden="true">${x >= 0 ? "↑" : "↓"}</span>${pct(x, d)}</span>` : "");
+
 // ------------------------------------------------------------------ charts (SVG)
-function spark(values, base, chg) {
+let sparkId = 0;
+function spark(values, base, chg, color) {
   if (!values || values.length < 2) return '<svg class="spark" aria-hidden="true"></svg>';
   const w = 200, h = 40, all = values.concat(isNum(base) ? [base] : []);
   const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || 1;
@@ -61,6 +73,15 @@ function spark(values, base, chg) {
   const d = values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
   const by = isNum(base) ? y(base).toFixed(1) : null;
   const col = chg > 0 ? "var(--gain)" : chg < 0 ? "var(--loss)" : "var(--muted)";
+  if (color) {                                   // brand-coloured area chart, as in the reference cards
+    const id = `sg${++sparkId}`;
+    return `<svg class="spark area-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true" style="--b:${color}">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="s0"/><stop offset="1" class="s1"/></linearGradient></defs>
+      ${by ? `<line class="base" x1="0" x2="${w}" y1="${by}" y2="${by}" vector-effect="non-scaling-stroke"/>` : ""}
+      <path class="area" d="${d}L${w},${h}L0,${h}Z" fill="url(#${id})"/>
+      <path class="line" d="${d}" vector-effect="non-scaling-stroke"/>
+      <circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="2.6" fill="${col}"/></svg>`;
+  }
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
     ${by ? `<line class="base" x1="0" x2="${w}" y1="${by}" y2="${by}" vector-effect="non-scaling-stroke"/>` : ""}
     <path d="${d}" vector-effect="non-scaling-stroke"/>
@@ -216,7 +237,7 @@ const radarChips = (r) => [
 function featureHTML(r, rates) {
   return `<div>${gauge(r.chance, r.level, rates, false, "gFeature")}<div class="g-num" id="gNum">${Math.round(r.chance)}%</div></div>
     <div class="g-meta">
-      <h3 class="g-name" id="gName">${esc(r.ticker)}</h3>
+      <h3 class="g-name" id="gName">${logo(r.ticker, "lg")}${esc(r.ticker)}</h3>
       <span class="sub muted">Chance of a ±7% day</span>
       <div id="gLevel">${levelTag(r.level)}</div>
       <div class="chips" id="gChips">${radarChips(r)}</div>
@@ -235,7 +256,7 @@ function selectRadar(t) {
   const fill = $("#gFeature .fill"), top = Math.max(60, r.chance);
   if (fill) { fill.style.strokeDashoffset = 100 - (Math.min(r.chance, top) / top) * 100; fill.classList.toggle("hot", r.level !== "Low"); }
   countUp($("#gNum"), prev ? prev.chance : 0, r.chance, (v) => `${Math.round(v)}%`);
-  $("#gName").textContent = r.ticker;
+  $("#gName").innerHTML = logo(r.ticker, "lg") + esc(r.ticker);
   $("#gLevel").innerHTML = levelTag(r.level);
   $("#gChips").innerHTML = radarChips(r);
   $("#gWarn").textContent = (r.warnings || []).join(" · ").replace(/-(\d)/g, MINUS + "$1") || "No warnings today.";
@@ -257,7 +278,7 @@ function renderLive(d) {
       <div><span class="label">Risk</span><span class="val" data-count="${p.risk_eur}" data-fmt="eur2">${eur(p.risk_eur, 2)}</span></div>
       <div><span class="label">Stop</span><span class="val" data-count="${p.stop_price}" data-fmt="n2">${fmt(p.stop_price)}</span></div>
       <div><span class="label">Exit</span><span class="val">${esc(D.exit)}</span></div>
-    </div><div class="ticket-who">${p.late ? `<strong>Signal passed ${esc(String(p.age_min))} min ago, don't enter now</strong> · ` : ""}${esc(p.ticker)} ${p.side} · ${esc(p.setup)} · entry ${fmt(p.entry)} at ${esc(p.entry_time)}${isNum(p.now) ? ` · now ${pct(p.now)} from entry` : ""}</div></div>`).join("");
+    </div><div class="ticket-who">${logo(p.ticker, "xs")} ${p.late ? `<strong>Signal passed ${esc(String(p.age_min))} min ago, don't enter now</strong> · ` : ""}${esc(p.ticker)} ${p.side} · ${esc(p.setup)} · entry ${fmt(p.entry)} at ${esc(p.entry_time)}${isNum(p.now) ? ` · now ${pct(p.now)} from entry` : ""}</div></div>`).join("");
   const hero = `<section class="hero" data-tone="${D.tone}" aria-labelledby="decision">
     <div class="glass hero-card ${rv()}">
       <div class="hero-meta"><span class="label">${esc(today)}</span><span class="label">${esc(phaseWord[d.phase])}</span><span class="label">Updated ${esc(d.updated)}</span></div>
@@ -318,7 +339,7 @@ function renderLive(d) {
     ${sel ? `<div class="glass radar-feature ${rv()}" id="radarFeature">${featureHTML(sel, rates)}</div>` : ""}
     <div class="radar-grid" role="group" aria-label="Stocks on your watchlist">
       ${d.radar.rows.map((r) => r.level ? `<button type="button" class="glass lift stock-card ${rv()}" data-radar="${esc(r.ticker)}" aria-pressed="${r.ticker === radarSel}">
-          <span class="row1"><span class="tick-name">${esc(r.ticker)}</span><span class="level-${r.level}" style="font-size:12px">${r.level}</span></span>
+          <span class="row1"><span class="who">${logo(r.ticker, "sm")}<span class="tick-name">${esc(r.ticker)}</span></span><span class="level-${r.level}" style="font-size:12px">${r.level}</span></span>
           ${gauge(r.chance, r.level, rates, true)}<span class="mini-num">${Math.round(r.chance)}%</span>
           <span class="muted" style="font-size:12px;text-align:center">${isNum(r.gap) ? `${r.gap_label === "gap" ? "gap" : "pre-mkt"} ${pct(r.gap, 1)}` : "&nbsp;"}</span></button>`
         : `<div class="glass stock-card"><span class="tick-name">${esc(r.ticker)}</span><span class="muted">No data</span></div>`).join("")}
@@ -334,12 +355,12 @@ function renderLive(d) {
   };
   const quiet = fired.filter((f) => !f.taken);
   const quietList = quiet.length ? `<div class="glass sig-list ${rv()}"><div class="sig-row sig-head-row"><span class="label">Stock</span><span class="label">Side</span><span class="label">Setup</span><span class="label">Entry</span><span class="label">Now</span><span class="label">Not taken because</span></div>
-    ${quiet.map((f) => `<div class="sig-row"><span class="tick-name">${esc(f.ticker)}</span><span class="side ${f.side === "SHORT" ? "loss" : "gain"}">${f.side}</span>
+    ${quiet.map((f) => `<div class="sig-row"><span class="who">${logo(f.ticker, "sm")}<span class="tick-name">${esc(f.ticker)}</span></span><span class="side ${f.side === "SHORT" ? "loss" : "gain"}">${f.side}</span>
       <span class="muted">${esc(f.setup)} · ${esc(f.time)}</span><span class="num">${fmt(f.entry)}</span><span class="${tone(f.now)} num">${pct(f.now)}</span>
       <span class="muted">${esc((f.blocked || []).join(", ") || "today's plan")}${f.side === "SHORT" && f.filters.sector ? " · market agreed" : ""}</span></div>`).join("")}
     <p class="sub" style="padding:10px 16px 4px;font-size:12px">Every signal is logged, taken or not, so its result shows up in the Signal log.</p></div>` : "";
   const sigCards = fired.filter((f) => f.taken).map((f) => `<article class="glass lift sig-card ${f.taken ? "taken" : ""} ${rv()}">
-      <div class="sig-head"><span class="sig-tick">${esc(f.ticker)}</span><span class="status-tag ${f.taken ? "gain" : f.side === "SHORT" ? "loss" : "muted"}"><i></i>${f.taken ? `TAKE ${f.side}` : `${f.side} signal`}</span></div>
+      <div class="sig-head"><span class="who">${logo(f.ticker)}<span class="sig-tick">${esc(f.ticker)}</span></span><span class="status-tag ${f.taken ? "gain" : f.side === "SHORT" ? "loss" : "muted"}"><i></i>${f.taken ? `TAKE ${f.side}` : `${f.side} signal`}</span></div>
       <div class="chips"><span class="chip">${esc(f.setup)}</span><span class="chip">${esc(f.time)}</span></div>
       <div class="kv"><div><span class="label">Entry</span><b>${fmt(f.entry)}</b></div><div><span class="label">Now</span><b class="${tone(f.now)}">${pct(f.now)}</b></div>
         <div><span class="label">Sector</span><b>${f.filters.sector ? "ok" : "not ok"}</b></div></div>
@@ -360,10 +381,10 @@ function renderLive(d) {
 
   // ---- market
   const tape = d.tape.items.map((t) => t.last == null ? `<div class="card tile lift ${rv()}"><span class="label">${t.ticker}</span><span class="fig-val">—</span></div>` : `
-    <div class="card tile lift ${rv()}"><span class="label">${t.ticker}</span><span class="fig-val" data-count="${t.last}" data-fmt="n2">${fmt(t.last)}</span>
-      <span class="chg">${pctHtml(t.chg)} <span class="muted">· ${t.vwap_dist > 0 ? "above" : "below"} VWAP</span></span>
+    <div class="card tile lift ${rv()}"><span class="tile-top"><span class="label">${t.ticker}</span>${logo(t.ticker, "sm")}</span><span class="fig-val" data-count="${t.last}" data-fmt="n2">${fmt(t.last)}</span>
+      <span class="chg">${deltaPill(t.chg)} <span class="muted">${t.vwap_dist > 0 ? "above" : "below"} VWAP</span></span>
       ${isNum(t.pre) ? `<span class="pre">Pre-market ${fmt(t.pre)} ${pctHtml(t.pre_chg)}</span>` : ""}
-      ${spark(t.spark, t.prev_close, t.chg)}</div>`).join("");
+      ${spark(t.spark, t.prev_close, t.chg, brand(t.ticker))}</div>`).join("");
   const br = d.tape.breadth;
   const breadth = `<div class="card tile lift ${rv()}"><span class="label">Watchlist breadth</span><span class="fig-val">${isNum(br) ? (br > 0 ? "+" : br < 0 ? MINUS : "") + Math.abs(br).toFixed(2) : "—"}</span>
     <span class="meter" style="margin-top:6px"><span class="meter-track"><span class="meter-fill" style="width:${isNum(br) ? ((br + 1) / 2) * 100 : 50}%"></span></span></span>
@@ -383,9 +404,9 @@ function renderLive(d) {
     if (r.last == null) return `<div class="glass wl-card"><span class="tick-name">${esc(r.ticker)}</span><span class="muted">No data</span></div>`;
     const open = wlOpen === r.ticker;
     const card = `<button type="button" class="glass lift wl-card ${rv()}" data-ticker="${esc(r.ticker)}" aria-expanded="${open}" aria-controls="wl-panel">
-      <span class="top"><span class="tick-name">${esc(r.ticker)}</span>${pctHtml(r.chg)}</span>
+      <span class="top"><span class="who">${logo(r.ticker)}<span><span class="tick-name">${esc(r.ticker)}</span><span class="co">${esc(coName(r.ticker))}</span></span></span>${deltaPill(r.chg)}</span>
       <span class="px" data-count="${r.last}" data-fmt="n2">${fmt(r.last)}</span>
-      ${spark(r.spark, r.prev_close, r.chg)}
+      ${spark(r.spark, r.prev_close, r.chg, brand(r.ticker))}
       <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}</span>
       <span class="verdict">${esc(r.verdict)}${isNum(r.score) ? ` · score ${fmt(r.score, 0).replace("-", MINUS)}` : ""}</span></button>`;
     const panel = open ? `<div class="glass wl-panel" id="wl-panel">
@@ -757,6 +778,7 @@ async function init() {
   };
   addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY > 4), { passive: true });
   try { SCHEMA = await api("/api/schema"); } catch (e) { /* defaults */ }
+  try { LOGOS = await (await fetch("/web/logos/manifest.json")).json(); } catch (e) { LOGOS = {}; }
   if (!SCHEMA.exit_options.includes(S.exit)) S.exit = SCHEMA.exit_options[0] || "";
   const dlg = $("#drawer");
   $("#settingsBtn").onclick = () => { renderSettings(); dlg.showModal(); };
