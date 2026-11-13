@@ -244,6 +244,18 @@ def load_catalysts(watch: list) -> pd.DataFrame:
     return cat.sort_values("date").drop_duplicates(subset=["date", "event"])
 
 
+def series_t(session: pd.DataFrame | None, n: int = 80) -> list:
+    """Bar close times (Amsterdam, HH:MM) matching series()."""
+    if session is None or session.empty:
+        return []
+    c = session["Close"].dropna()
+    t = [(i + pd.Timedelta(minutes=m.BAR_MINUTES)).tz_convert(AMS).strftime("%H:%M") for i in c.index]
+    if len(t) > n:
+        step = len(t) / n
+        t = [t[int(i * step)] for i in range(n)] + [t[-1]]
+    return t
+
+
 def series(session: pd.DataFrame | None, n: int = 80) -> list:
     """Intraday close path for sparklines."""
     if session is None or session.empty:
@@ -462,7 +474,8 @@ def live(s: Settings) -> dict:
         p = pre.get(tk)
         tape.append({"ticker": tk, "last": clean(sn.last), "chg": clean(sn.chg), "vwap_dist": clean(sn.vwap_dist),
                      "pre": clean(p), "pre_chg": clean((p / sn.last - 1) * 100) if p else None,
-                     "spark": series(sn.extra.get("session")), "prev_close": clean(sn.prev_close)})
+                     "spark": series(sn.extra.get("session")), "spark_t": series_t(sn.extra.get("session")),
+                     "prev_close": clean(sn.prev_close)})
     out["tape"] = {"items": tape, "breadth": clean(breadth)}
 
     # watchlist
@@ -485,7 +498,7 @@ def live(s: Settings) -> dict:
             "vwap_side": clean(sn.vwap_side),
             "or": ({1: "Above", -1: "Below", 0: "Inside"}[sn.or_break] if sn.or_high else "Forming"),
             "rvol": clean(sn.rvol), "range_atr": clean(sn.range_atr), "score": clean(v.score), "verdict": v.label,
-            "reasons": v.reasons, "spark": series(sess_df), "prev_close": clean(sn.prev_close),
+            "reasons": v.reasons, "spark": series(sess_df), "spark_t": series_t(sess_df), "prev_close": clean(sn.prev_close),
             "candles": {"t": [x.tz_convert(AMS).strftime("%H:%M") for x in sess_df.index],
                         "o": [clean(x) for x in sess_df["Open"]], "h": [clean(x) for x in sess_df["High"]],
                         "l": [clean(x) for x in sess_df["Low"]], "c": [clean(x) for x in sess_df["Close"]],

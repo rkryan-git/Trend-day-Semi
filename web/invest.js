@@ -22,9 +22,12 @@ function trendChart(ch, up) {
   segs += `<path class="seg ${cur ? "up" : "dn"}" d="${d}"/>`;
   const ma = m.map((v, i) => (isNum(v) ? `${x(i).toFixed(1)},${y(v).toFixed(1)}` : null)).filter(Boolean);
   const maPath = ma.length ? `<path class="ma" d="M${ma.join("L")}"/>` : "";
-  return `<svg class="trend-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="One year of closes with the 200-day average">
+  const ticks = [0, Math.round((n - 1) / 3), Math.round(2 * (n - 1) / 3), n - 1];
+  return `<svg class="trend-chart has-tip" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="One year of closes with the 200-day average"
+      data-v='${JSON.stringify(c)}' data-t='${JSON.stringify(ch.t)}' data-ref='${JSON.stringify(m)}' data-ref-label="vs 200-day avg"
+      data-lo="${lo}" data-hi="${hi}" data-h="${H}" data-pt="8" data-pb="8">
     ${maPath}${segs}</svg>
-    <div class="trend-axis"><span>${esc(ch.t[0] || "")}</span><span>200-day average dashed</span><span>${esc(ch.t[n - 1] || "")}</span></div>`;
+    <div class="chart-axis">${ticks.map((k) => `<span>${esc(ch.t[k] || "")}</span>`).join("")}</div>`;
 }
 
 const fmtDate = (s) => (s ? new Date(s + "T12:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");

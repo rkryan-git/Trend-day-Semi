@@ -66,7 +66,7 @@ const deltaPill = (x, d = 2) => (isNum(x) ? `<span class="delta ${tone(x)}"><spa
 
 // ------------------------------------------------------------------ charts (SVG)
 let sparkId = 0;
-function spark(values, base, chg, color) {
+function spark(values, base, chg, color, times) {
   if (!values || values.length < 2) return '<svg class="spark" aria-hidden="true"></svg>';
   const w = 200, h = 40, all = values.concat(isNum(base) ? [base] : []);
   const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || 1;
@@ -78,7 +78,9 @@ function spark(values, base, chg, color) {
     const id = `sg${++sparkId}`, ref = by != null ? Number(by) : (chg > 0 ? h : 0);
     const flat = chg === 0;
     const area = `${d}L${w},${ref}L0,${ref}Z`;
-    return `<svg class="spark area-spark${flat ? " flat" : ""}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    const tipData = ` data-v='${JSON.stringify(values)}' data-t='${JSON.stringify(times || [])}' data-lo="${lo}" data-hi="${hi}" data-h="${h}"${isNum(base) ? ` data-ref="${base}" data-ref-label="vs yesterday's close"` : ""}`;
+    const tl = times && times.length > 1 ? `<div class="chart-axis"><span>${esc(times[0])}</span><span>${esc(times[Math.floor(times.length / 2)])}</span><span>${esc(times[times.length - 1])}</span></div>` : "";
+    return `<svg class="spark area-spark has-tip${flat ? " flat" : ""}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"${tipData}>
       <defs>
         <clipPath id="${id}u"><rect x="0" y="0" width="${w}" height="${ref}"/></clipPath>
         <clipPath id="${id}d"><rect x="0" y="${ref}" width="${w}" height="${h - ref}"/></clipPath>
@@ -89,7 +91,7 @@ function spark(values, base, chg, color) {
       <path class="area dn" d="${area}" clip-path="url(#${id}d)"/>
       <path class="line up" d="${d}" clip-path="url(#${id}u)" vector-effect="non-scaling-stroke"/>
       <path class="line dn" d="${d}" clip-path="url(#${id}d)" vector-effect="non-scaling-stroke"/>
-      <circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="2.8" fill="${col}"/></svg>`;
+      <circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="2.8" fill="${col}"/></svg>${tl}`;
   }
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
     ${by ? `<line class="base" x1="0" x2="${w}" y1="${by}" y2="${by}" vector-effect="non-scaling-stroke"/>` : ""}
@@ -393,7 +395,7 @@ function renderLive(d) {
     <div class="card tile lift ${rv()}"><span class="tile-top"><span class="label">${t.ticker}</span>${logo(t.ticker, "sm")}</span><span class="fig-val" data-count="${t.last}" data-fmt="n2">${fmt(t.last)}</span>
       <span class="chg">${deltaPill(t.chg)} <span class="muted">${t.vwap_dist > 0 ? "above" : "below"} VWAP</span></span>
       ${isNum(t.pre) ? `<span class="pre">Pre-market ${fmt(t.pre)} ${pctHtml(t.pre_chg)}</span>` : ""}
-      ${spark(t.spark, t.prev_close, t.chg, brand(t.ticker))}</div>`).join("");
+      ${spark(t.spark, t.prev_close, t.chg, brand(t.ticker), t.spark_t)}</div>`).join("");
   const br = d.tape.breadth;
   const breadth = `<div class="card tile lift ${rv()}"><span class="label">Watchlist breadth</span><span class="fig-val">${isNum(br) ? (br > 0 ? "+" : br < 0 ? MINUS : "") + Math.abs(br).toFixed(2) : "—"}</span>
     <span class="meter" style="margin-top:6px"><span class="meter-track"><span class="meter-fill" style="width:${isNum(br) ? ((br + 1) / 2) * 100 : 50}%"></span></span></span>
@@ -416,7 +418,7 @@ function renderLive(d) {
     const card = `<button type="button" class="glass lift wl-card ${rv()}" data-ticker="${esc(r.ticker)}" aria-expanded="${open}" aria-controls="wl-panel">
       <span class="top"><span class="who">${logo(r.ticker)}<span><span class="tick-name">${esc(r.ticker)}</span><span class="co">${esc(coName(r.ticker))}</span></span></span>${deltaPill(r.chg)}</span>
       <span class="px" data-count="${r.last}" data-fmt="n2">${fmt(r.last)}</span>
-      ${spark(r.spark, r.prev_close, r.chg, brand(r.ticker))}
+      ${spark(r.spark, r.prev_close, r.chg, brand(r.ticker), r.spark_t)}
       <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}</span>
       <span class="verdict">${esc(r.verdict)}${isNum(r.score) ? ` · score ${fmt(r.score, 0).replace("-", MINUS)}` : ""}</span></button>`;
     const panel = open ? `<div class="glass wl-panel" id="wl-panel">
@@ -760,16 +762,19 @@ function placeAcctPill() {
   if (pill && on) { pill.style.left = `${on.offsetLeft}px`; pill.style.width = `${on.offsetWidth}px`; }
 }
 
-// the first part of semitrendaudio.mp3 (0 to 0.96 s, the first swell) plays on the account switch
+// the second part of semitrendaudio.mp3 (after the quiet dip at 0.96 s) plays on the account switch, softly
 let sfx = null, sfxCtx = null;
 async function playSwitch() {
   if (S.sound === false) return;
   try {
     sfxCtx = sfxCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (!sfx) sfx = await sfxCtx.decodeAudioData(await (await fetch("/web/sound/switch.mp3")).arrayBuffer());
+    // second part: from the quiet dip at 0.96 s to the end (1.88 s), at about 35% volume
     const src = sfxCtx.createBufferSource(), g = sfxCtx.createGain(), t = sfxCtx.currentTime;
-    g.gain.setValueAtTime(0.9, t); g.gain.setValueAtTime(0.9, t + 0.86); g.gain.linearRampToValueAtTime(0, t + 0.96);
-    src.buffer = sfx; src.connect(g).connect(sfxCtx.destination); src.start(t, 0, 0.96);
+    const start = 0.96, len = Math.max(0.1, sfx.duration - start), vol = 0.35;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.03);
+    g.gain.setValueAtTime(vol, t + len - 0.12); g.gain.linearRampToValueAtTime(0, t + len);
+    src.buffer = sfx; src.connect(g).connect(sfxCtx.destination); src.start(t, start, len);
   } catch (e) { /* sound is optional */ }
 }
 document.addEventListener("click", (e) => {
@@ -820,7 +825,7 @@ function injectRefraction() {
   wrap.id = "lg-defs";
   wrap.setAttribute("aria-hidden", "true");
   wrap.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
-  wrap.innerHTML = `<svg width="0" height="0"><defs>${f("lg-refract", 26, 12, 1.75)}${f("lg-refract-strong", 40, 4, 1.9)}</defs></svg>`;
+  wrap.innerHTML = `<svg width="0" height="0"><defs>${f("lg-refract", 26, 12, 1.75)}${f("lg-refract-strong", 40, 4, 1.9)}${f("lg-refract-hover", 26, 12, 1.75)}</defs></svg>`;
   document.body.prepend(wrap);
 }
 
