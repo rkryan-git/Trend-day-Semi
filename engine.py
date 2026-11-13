@@ -579,7 +579,8 @@ def signal_log(s: Settings) -> dict:
     if log.empty:
         return {"stats": table(None), "rows": table(None), "count": 0}
     stats = su.log_stats(log, s.spread)
-    return {"stats": table(stats), "count": int(len(log)),
+    late = ~su.is_live(log)
+    return {"stats": table(stats), "count": int(len(log)), "reconstructed": int(late.sum()),
             "rows": table(log.sort_values(["date", "ticker"], ascending=[False, True]), index=False)}
 
 

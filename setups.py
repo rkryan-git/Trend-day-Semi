@@ -7,7 +7,8 @@ by metrics.split_sessions.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import numpy as np
@@ -308,7 +309,9 @@ def radar(daily_hist: pd.DataFrame | None, gap: float | None, hynix: float | Non
 # Signal log (CSV next to the app)
 # ----------------------------------------------------------------------------
 LOG_COLS = ["date", "ticker", "setup", "direction", "entry_time_ams", "entry", "sector_ok", "breadth",
-            "atr_used", "passed_filters", "plan", "blocked_by", "exit_mins_before_close", "close", "result_pct", "status"]
+            "atr_used", "passed_filters", "plan", "blocked_by", "exit_mins_before_close", "close", "result_pct", "status",
+            "logged_at", "live"]
+LIVE_WINDOW_MIN = 10   # a signal is "live" only if the app logged it within 10 min of its candle closing
 
 
 def read_log(path: Path) -> pd.DataFrame:
@@ -322,6 +325,23 @@ def read_log(path: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=LOG_COLS)
 
 
+def _logged_in_time(d, when: str, now: datetime, ams) -> bool:
+    """True when the app saw the signal within LIVE_WINDOW_MIN of its candle closing (a real-time call),
+    False when it was reconstructed later from the day's bars (e.g. the app was started after the signal)."""
+    try:
+        hh, mm = (int(x) for x in str(when).split(":"))
+        sig = datetime.combine(pd.Timestamp(str(d)).date(), time(hh, mm), ams)
+        return (now - sig).total_seconds() <= LIVE_WINDOW_MIN * 60
+    except Exception:
+        return False
+
+
+def is_live(log: pd.DataFrame) -> pd.Series:
+    """Rows logged before the live flag existed count as live (they were logged by the running app)."""
+    v = log["live"].astype(str).str.lower()
+    return ~v.isin(["false", "0"])
+
+
 def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0) -> pd.DataFrame:
     """triggered: [(date, ticker, SetupState, entry_time_ams_str, Context|None, passed_filters: bool)].
     Every triggered signal is logged, including ones the filters rejected, so the filters
@@ -329,6 +349,8 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
     log = read_log(path)
     keys = set(zip(log["date"].astype(str), log["ticker"], log["setup"]))
     new = []
+    ams = ZoneInfo("Europe/Amsterdam")
+    now = datetime.now(ams)
     for item in triggered:
         d, tk, st_, when = item[:4]
         ctx = item[4] if len(item) > 4 else None
@@ -343,10 +365,12 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
                     "breadth": None if ctx is None or ctx.breadth is None else f"{ctx.breadth}/3",
                     "atr_used": None if ctx is None or ctx.atr_used is None else round(ctx.atr_used, 2),
                     "passed_filters": passed, "plan": plan, "blocked_by": blocked, "exit_mins_before_close": exit_before,
-                    "close": np.nan, "result_pct": np.nan, "status": "open"})
+                    "close": np.nan, "result_pct": np.nan, "status": "open",
+                    "logged_at": now.strftime("%Y-%m-%d %H:%M"),
+                    "live": _logged_in_time(d, when, now, ams)})
     if new:
         log = pd.concat([log, pd.DataFrame(new)], ignore_index=True)
-    for col in ("plan", "blocked_by"):          # text columns (pandas 3 types an all-empty column as float)
+    for col in ("plan", "blocked_by", "logged_at", "live"):          # text columns (pandas 3 types an all-empty column as float)
         log[col] = log[col].astype(object)
     # older rows (before blocked_by existed): reconstruct the reason from what was logged
     fill = log["blocked_by"].isna() & ~log["passed_filters"].astype(str).str.lower().isin(["true", "1"])
@@ -380,7 +404,7 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
 
 
 def log_stats(log: pd.DataFrame, spread: float = 0.0) -> pd.DataFrame:
-    c = log[log["status"] == "closed"].copy()
+    c = log[(log["status"] == "closed") & is_live(log)].copy()      # only signals the app called in real time
     if c.empty:
         return pd.DataFrame()
     c["result_pct"] = c["result_pct"].astype(float)
