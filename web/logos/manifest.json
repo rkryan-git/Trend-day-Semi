@@ -2,37 +2,44 @@
  "MU": {
   "name": "Micron",
   "color": "#0090C0",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "SNDK": {
   "name": "Sandisk",
   "color": "#D80000",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "WDC": {
   "name": "Western Digital",
   "color": "#006090",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "LRCX": {
   "name": "Lam Research",
   "color": "#004890",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "AMAT": {
   "name": "Applied Materials",
   "color": "#0090C0",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "ASML": {
   "name": "ASML",
   "color": "#001878",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "AMD": {
   "name": "AMD",
   "color": "#00A860",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "NVDA": {
   "name": "Nvidia",
@@ -42,12 +49,14 @@
  "TSM": {
   "name": "TSMC",
   "color": "#D80000",
-  "badge": "light"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "SMH": {
   "name": "VanEck Semiconductor ETF",
   "color": "#0062A1",
-  "badge": "dark"
+  "badge": "full",
+  "source": "Trading 212"
  },
  "QQQ": {
   "name": "Invesco QQQ (Nasdaq-100)",
@@ -58,5 +67,15 @@
   "name": "iShares Semiconductor ETF",
   "color": "#0060A8",
   "badge": "light"
+ },
+ "HYNIX": {
+  "badge": "full",
+  "source": "Trading 212",
+  "name": "SK Hynix"
+ },
+ "SAMSUNG": {
+  "badge": "full",
+  "source": "Trading 212",
+  "name": "Samsung"
  }
 }

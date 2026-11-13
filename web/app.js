@@ -73,14 +73,22 @@ function spark(values, base, chg, color) {
   const d = values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
   const by = isNum(base) ? y(base).toFixed(1) : null;
   const col = chg > 0 ? "var(--gain)" : chg < 0 ? "var(--loss)" : "var(--muted)";
-  if (color) {                                   // brand-coloured area chart, as in the reference cards
-    const id = `sg${++sparkId}`;
-    return `<svg class="spark area-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true" style="--b:${color}">
-      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="s0"/><stop offset="1" class="s1"/></linearGradient></defs>
+  if (color) {                                   // area chart: green above yesterday's close, red below, grey only at exactly 0
+    const id = `sg${++sparkId}`, ref = by != null ? Number(by) : (chg > 0 ? h : 0);
+    const flat = chg === 0;
+    const area = `${d}L${w},${ref}L0,${ref}Z`;
+    return `<svg class="spark area-spark${flat ? " flat" : ""}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <clipPath id="${id}u"><rect x="0" y="0" width="${w}" height="${ref}"/></clipPath>
+        <clipPath id="${id}d"><rect x="0" y="${ref}" width="${w}" height="${h - ref}"/></clipPath>
+
+      </defs>
       ${by ? `<line class="base" x1="0" x2="${w}" y1="${by}" y2="${by}" vector-effect="non-scaling-stroke"/>` : ""}
-      <path class="area" d="${d}L${w},${h}L0,${h}Z" fill="url(#${id})"/>
-      <path class="line" d="${d}" vector-effect="non-scaling-stroke"/>
-      <circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="2.6" fill="${col}"/></svg>`;
+      <path class="area up" d="${area}" clip-path="url(#${id}u)"/>
+      <path class="area dn" d="${area}" clip-path="url(#${id}d)"/>
+      <path class="line up" d="${d}" clip-path="url(#${id}u)" vector-effect="non-scaling-stroke"/>
+      <path class="line dn" d="${d}" clip-path="url(#${id}d)" vector-effect="non-scaling-stroke"/>
+      <circle cx="${x(values.length - 1)}" cy="${y(values[values.length - 1])}" r="2.8" fill="${col}"/></svg>`;
   }
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
     ${by ? `<line class="base" x1="0" x2="${w}" y1="${by}" y2="${by}" vector-effect="non-scaling-stroke"/>` : ""}
@@ -389,7 +397,8 @@ function renderLive(d) {
   const breadth = `<div class="card tile lift ${rv()}"><span class="label">Watchlist breadth</span><span class="fig-val">${isNum(br) ? (br > 0 ? "+" : br < 0 ? MINUS : "") + Math.abs(br).toFixed(2) : "—"}</span>
     <span class="meter" style="margin-top:6px"><span class="meter-track"><span class="meter-fill" style="width:${isNum(br) ? ((br + 1) / 2) * 100 : 50}%"></span></span></span>
     <span class="pre">(up − down) / total. Near ±1, the whole group moves together.</span></div>`;
-  const ov = d.overnight.map((o) => `<div class="glass ov-card lift ${rv()}"><span class="label">${esc(o.name)}</span><span class="fig-val">${isNum(o.last) ? fmt(o.last, 0) : "—"}</span>
+  const OVL = { "SK Hynix": "HYNIX", "Samsung": "SAMSUNG", "ASML (Amsterdam)": "ASML" };
+  const ov = d.overnight.map((o) => `<div class="glass ov-card lift ${rv()}"><span class="tile-top"><span class="label">${esc(o.name)}</span>${OVL[o.name] ? logo(OVL[o.name], "sm") : ""}</span><span class="fig-val">${isNum(o.last) ? fmt(o.last, 0) : "—"}</span>
     <span class="chg">${pctHtml(o.chg)}${o.stale ? ' <span class="muted">· not today</span>' : ""}</span></div>`).join("");
   const market = `<section class="section" aria-labelledby="h-mkt">
     <div class="section-head"><h2 class="h-section ${rv()}" id="h-mkt">Sector tape</h2><p class="prose ${rv()}">Versus yesterday's close. The dotted line in each chart is yesterday's close.</p></div>
