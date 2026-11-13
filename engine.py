@@ -787,6 +787,34 @@ def _isin_symbols(isin: str) -> tuple:
         return ()
 
 
+def cashflow_t212(text: str) -> dict:
+    """Deposits and withdrawals in an Invest export, sorted by where the money went.
+    Withdrawals/deposits without a note are internal transfers (Invest <-> CFD): an inference, shown as such.
+    Bank details in the notes are never returned."""
+    from io import StringIO
+    df = pd.read_csv(StringIO(text), dtype=str)
+    a, t, n = _col(df, "action"), _col(df, "time"), _col(df, "notes")
+    tot = _col(df, "total") or _col(df, "gross total")
+    if a is None or tot is None:
+        return {}
+    df = df[df[a].isin(["Deposit", "Withdrawal"])].copy()
+    if df.empty:
+        return {}
+    note = df[n].fillna("") if n else pd.Series("", index=df.index)
+    amt = pd.to_numeric(df[tot], errors="coerce").fillna(0.0)
+    tm = pd.to_datetime(df[t], errors="coerce", utc=True).dt.tz_convert("Europe/Amsterdam")
+    kind = np.select([(df[a] == "Withdrawal") & (note == ""), (df[a] == "Deposit") & (note == ""),
+                      (df[a] == "Deposit"), (df[a] == "Withdrawal")],
+                     ["to_cfd", "from_cfd", "bank_in", "bank_out"], "other")
+    g = pd.DataFrame({"kind": kind, "amt": amt.values, "month": tm.dt.strftime("%Y-%m").values})
+    total = {k: round(float(abs(g[g.kind == k].amt.sum())), 2) for k in ("to_cfd", "from_cfd", "bank_in", "bank_out")}
+    count = {k: int((g.kind == k).sum()) for k in ("to_cfd", "from_cfd", "bank_in", "bank_out")}
+    monthly = (g[g.kind.isin(["to_cfd", "from_cfd"])].assign(v=lambda x: np.where(x.kind == "to_cfd", -x.amt.abs(), x.amt.abs()))
+               .groupby("month").v.sum().round(2))
+    return {"total": total, "count": count, "monthly": [{"month": k, "net": float(v)} for k, v in monthly.items()],
+            "net_to_cfd": round(total["to_cfd"] - total["from_cfd"], 2)}
+
+
 def _yahoo_symbols(ticker: str, currency: str, isin: str = "") -> list:
     t = str(ticker).upper().replace(" ", "").replace("/", "-")
     cur = str(currency).upper()
@@ -808,6 +836,7 @@ def save_exits(text: str) -> dict:
     new = pd.read_csv(StringIO(text), dtype=str)
     if EXITS_FILE.exists():
         old = pd.read_csv(EXITS_FILE, dtype=str)
+        # older stored file may lack columns the new export has (or the other way round): concat aligns them
         both = pd.concat([old, new], ignore_index=True)
         key = _col(both, "id")
         both = both.drop_duplicates(subset=[key] if key else None)
@@ -826,7 +855,9 @@ def clear_exits() -> dict:
 def exits() -> dict:
     if not EXITS_FILE.exists():
         return {"empty": True}
-    tr = parse_t212(EXITS_FILE.read_text(encoding="utf-8"))
+    raw_text = EXITS_FILE.read_text(encoding="utf-8")
+    tr = parse_t212(raw_text)
+    flows = cashflow_t212(raw_text)
     sells = tr[tr["side"] == "sell"]
     if sells.empty:
         return {"empty": False, "sells": [], "note": "No sells in this export."}
@@ -902,7 +933,7 @@ def exits() -> dict:
                      "smh_chg": clean(smh_chg), "rule_e_out": e_out,
                      "chart": {"c": [clean(v) for v in pc.values] + [clean(now_px)],
                                "t": [d.strftime("%d %b %y") for d in pc.index] + [path.index[-1].strftime("%d %b %y")]}})
-    return {"empty": False, "sells": rows[::-1], "missed_eur": round(missed, 2), "avoided_eur": round(avoided, 2),
+    return {"empty": False, "sells": rows[::-1], "flows": flows, "missed_eur": round(missed, 2), "avoided_eur": round(avoided, 2),
             "net_eur": round(missed - avoided, 2), "eurusd": clean(eurusd), "count": len(rows),
             "e_agreed": sum(1 for x in rows if x.get("rule_e_out") is True),
             "e_known": sum(1 for x in rows if x.get("rule_e_out") is not None)}

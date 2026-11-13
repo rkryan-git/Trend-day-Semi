@@ -4,7 +4,7 @@
 function exitChart(ch, sellPx) {
   // price after the sale: green above your sell price, red below; dashed line = your sell price
   const c = ch.c.filter(isNum), n = c.length;
-  if (n < 2) return "";
+  if (n < 3) return '<p class="sub" style="font-size:12px;padding:24px 0">Sold very recently: the chart fills in as new closes come in.</p>';
   const W = 640, H = 120, lo = Math.min(...c, sellPx), hi = Math.max(...c, sellPx), sp = hi - lo || 1;
   const x = (i) => (i / (n - 1)) * W, y = (v) => 6 + (1 - (v - lo) / sp) * (H - 12);
   const by = y(sellPx).toFixed(1), d = c.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
@@ -57,7 +57,9 @@ async function renderExits(msg = "") {
         <p class="hero-sub">Missed by selling: ${eurS(d.missed_eur)} · avoided by selling: ${eurS(d.avoided_eur).replace("+", "")}. ${d.e_known ? `Rule E agreed with ${d.e_agreed} of ${d.e_known} sells.` : ""}</p>
         <p class="sub" style="margin-top:10px;font-size:13px">Fair warning: this follows the stock only, not what you did with the cash. If you put the money into something else, that part isn't counted. A buy-back ends the comparison.</p>
         <div class="form-row" style="margin-top:20px">${upload}</div><p class="toast" id="exitsMsg" aria-live="polite">${msg}</p></div></section>
-      <section class="section"><div class="inv-grid">${cards || '<p class="empty">No sells in this export.</p>'}</div></section>`;
+      ${flowsHTML(d)}
+      <section class="section"><div class="section-head"><h2 class="h-section">Every sell</h2><p class="prose">Newest first. Each card follows the stock from the moment you sold, until today or until you bought it back.</p></div>
+        <div class="inv-grid">${cards || '<p class="empty">No sells in this export.</p>'}</div></section>`;
   }
   const inp = $("#exitsFile");
   if (inp) inp.onchange = async () => {
@@ -73,3 +75,36 @@ async function renderExits(msg = "") {
   if (clr) clr.onclick = async () => { investExits = await api("/api/exits", { method: "DELETE" }); renderExits("Removed. Nothing is stored now."); };
 }
 let investExits = null;
+
+function cfdBalance() { try { const v = localStorage.getItem("stdr.cfdBalance"); return v === null ? null : Number(v); } catch (e) { return null; } }
+function flowsHTML(d) {
+  const f = d.flows;
+  if (!f || !f.total) return "";
+  const t = f.total, bal = cfdBalance();
+  const result = isNum(bal) ? t.from_cfd + bal - t.to_cfd : null;
+  const allIn = isNum(result) ? result - d.net_eur : null;
+  const eu = (x) => "€" + Math.round(Math.abs(x)).toLocaleString("en-US");
+  return `<section class="section" aria-labelledby="flows-h"><div class="section-head"><h2 class="h-section" id="flows-h">Where the money went</h2>
+    <p class="prose">Withdrawals and deposits without a note look like transfers between your Invest and CFD accounts. That's an inference from the export (T212 doesn't label them), so check it matches what you remember. Bank details are never shown.</p></div>
+    <div class="bento">
+      <div class="glass block lift span-4"><span class="label">Sent to CFD</span><span class="big loss">−${eu(t.to_cfd)}</span><p class="sub">${f.count.to_cfd} transfers out of Invest.</p></div>
+      <div class="glass block lift span-4"><span class="label">Came back from CFD</span><span class="big gain">+${eu(t.from_cfd)}</span><p class="sub">${f.count.from_cfd} transfers back into Invest.</p></div>
+      <div class="glass block lift span-4"><span class="label">Your CFD account now</span>
+        <form class="form-row" id="cfdBalForm" style="margin-top:4px"><label class="field" style="min-width:160px"><span class="muted" style="font-size:12px">Account value in T212 (€)</span>
+          <input class="input" name="bal" type="number" step="0.01" min="0" inputmode="decimal" value="${isNum(bal) ? bal : ""}" placeholder="e.g. 3768.84"></label>
+          <button class="btn btn-ghost btn-sm" type="submit">Use</button></form>
+        <p class="sub">Stays in this browser only.</p></div>
+    </div>
+    ${isNum(result) ? `<div class="glass block" style="margin-top:16px"><span class="label">What the money did in CFDs</span>
+      <span class="big ${result >= 0 ? "gain" : "loss"}">${result >= 0 ? "+" : "−"}${eu(result)}</span>
+      <p class="sub">Came back ${eu(t.from_cfd)} + in the CFD account now ${eu(bal)} − sent ${eu(t.to_cfd)}. Next to the stocks: selling cost ${eu(d.missed_eur)} in missed gains and saved ${eu(d.avoided_eur)}.
+      Taken together, CFD result minus what holding would have added: <b class="${allIn >= 0 ? "gain" : "loss"}">${allIn >= 0 ? "+" : "−"}${eu(allIn)}</b>. This assumes the CFD money came from these sells; some of it may have been new deposits.</p></div>` : ""}
+  </section>`;
+}
+document.addEventListener("submit", (e) => {
+  if (e.target.id !== "cfdBalForm") return;
+  e.preventDefault();
+  const v = Number(new FormData(e.target).get("bal"));
+  try { if (isFinite(v) && v >= 0) localStorage.setItem("stdr.cfdBalance", String(v)); } catch (er) { /* ignore */ }
+  renderExits("CFD balance updated.");
+});
