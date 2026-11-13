@@ -410,7 +410,6 @@ button.lift:hover, a.lift:hover, .lift[role="button"]:hover { transform: transla
   [data-theme="dark"] .dock button { border-radius: 8px; }
   .dock svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .dock button[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); }
-  body[data-acct="invest"] .dock button[data-acct="invest"][aria-pressed="true"] { background: var(--gain); color: #FFFFFF; }
   .dock button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
@@ -420,3 +419,45 @@ button.lift:hover, a.lift:hover, .lift[role="button"]:hover { transform: transla
 .sp-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
 .sp-bar i { display: block; width: 100%; max-width: 26px; border-radius: 4px 4px 2px 2px; background: var(--muted); opacity: .55; }
 .sp-bar span { font-size: 10px; color: var(--muted); }
+
+/* phones: iOS drops very large blurred layers, so the glow is drawn without blur and sized to the screen */
+@media (max-width: 820px) {
+  .ambient { inset: 0; filter: none; }
+  .ambient i:nth-child(1) { width: 130vw; height: 70vh; left: -45vw; top: -18vh; }
+  .ambient i:nth-child(2) { width: 120vw; height: 60vh; right: -55vw; left: auto; top: 30vh; }
+  .ambient i:nth-child(3) { width: 140vw; height: 65vh; left: -20vw; bottom: -30vh; }
+}
+
+/* view switcher + list / mini-chart rows */
+.head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.view-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.view-switch button { display: grid; place-items: center; width: 44px; height: 36px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--muted); cursor: pointer; }
+.view-switch svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.view-switch button[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); }
+.view-switch button:hover:not([aria-pressed="true"]) { color: var(--ink); }
+.view-switch button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.row-list { padding: 4px 18px; }
+.row-item { display: grid; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(150px, 1.4fr) 1fr 0.8fr 1.2fr; }
+.row-item:last-child { border-bottom: 0; }
+.mode-mini .row-item { grid-template-columns: minmax(150px, 1.4fr) 140px 1fr 0.8fr 1.2fr; }
+.row-item .num { font-variant-numeric: tabular-nums; text-align: right; font-size: 14px; }
+.row-item .who .logo { width: 32px; height: 32px; }
+.mini-spark { width: 120px; height: 32px; display: block; }
+.mini-spark line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: .6; }
+.mini-spark path { fill: none; stroke-width: 1.6; }
+.mini-spark.up path { stroke: var(--loss); }
+.mini-spark.dn path { stroke: var(--gain); }
+@media (max-width: 720px) {
+  .head-side { align-items: flex-start; }
+  .row-item, .mode-mini .row-item { grid-template-columns: 1fr auto; row-gap: 4px; }
+  .row-item .num:nth-of-type(1) { display: none; }
+  .mode-mini .row-item .mini-spark { grid-column: 1 / -1; width: 100%; }
+}
+
+/* audit full-5: readable green fill in dark, tighter closed fold, light tabs fit */
+[data-theme="dark"] body[data-acct="invest"] .acct-pill { background: #238636; }
+.news-fold:not([open]) + .section { padding-top: 28px; }
+.news-fold:not([open]) { padding-top: 48px; }
+@media (max-width: 1500px) { [data-theme="light"] .tabs a { padding-left: 9px; padding-right: 9px; letter-spacing: .02em; } }

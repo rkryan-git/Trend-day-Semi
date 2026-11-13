@@ -351,7 +351,7 @@ function renderLive(d) {
   const newsSec = `<details class="section news-fold" id="newsFold" ${newsOpen ? "open" : ""}>
     <summary class="fold-sum"><svg class="fold-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><h2 class="h-section" id="h-news">News radar</h2>
       <span class="fold-meta">${nCount} headline${nCount === 1 ? "" : "s"}${nHigh ? ` · ${nHigh} high impact` : ""}</span></summary>
-    <div class="section-head fold-body"><p class="prose">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Sorted by impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
+    <div class="section-head fold-body"><p class="prose">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Newest first; High and Medium mark impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
     <div class="glass news-list">${nf.error ? `<p class="empty">${esc(nf.error)}</p>` : !nf.items.length ? '<p class="empty">No headlines in the last 24 hours.</p>' :
       nf.items.filter((n) => !breaking.some((b) => b.headline === n.headline)).slice(0, 18).map((n) => `<a class="news-row imp-${n.impact}" href="${esc(n.url)}" target="_blank" rel="noopener">
         <span class="label">${esc(n.time)}${n.age_min >= 600 ? " · " + esc(n.day) : ""}</span>

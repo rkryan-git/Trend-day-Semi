@@ -971,14 +971,17 @@ def exits() -> dict:
                      "smh_chg": clean(smh_chg), "rule_e_out": e_out,
                      "chart": {"c": [clean(v) for v in pc.values] + [clean(now_px)],
                                "t": [d.strftime("%d %b %y") for d in pc.index] + [path.index[-1].strftime("%d %b %y")]}})
-    yr = str(datetime.now(AMS).year)
-    spending = {"to_bank_eur": round(sum(v for _, v in bank), 2), "to_bank_count": len(bank),
-                "to_bank_year_eur": round(sum(v for t, v in bank if str(t.year) == yr), 2),
-                "from_sells_eur": round(sum(spent.values()), 2), "sells_spent": len(spent), "days": SPEND_DAYS,
-                "monthly": [{"month": k, "eur": round(v, 2)} for k, v in
-                            pd.Series({t.strftime("%Y-%m"): 0.0 for t, _ in bank}).add(
-                                pd.Series([v for _, v in bank], index=[t.strftime("%Y-%m") for t, _ in bank]).groupby(level=0).sum(),
-                                fill_value=0).sort_index().items()]}
+    now_ams = datetime.now(AMS)
+    yr = now_ams.year
+    bank_y = [(t, v) for t, v in bank if t.year == yr]
+    spent_y = {i: v for i, v in spent.items() if sells.loc[i, "time"].year == yr}
+    months = [f"{yr}-{m:02d}" for m in range(1, now_ams.month + 1)]
+    per = {m: 0.0 for m in months}
+    for t, v in bank_y:
+        per[t.strftime("%Y-%m")] = per.get(t.strftime("%Y-%m"), 0.0) + v
+    spending = {"year": yr, "to_bank_year_eur": round(sum(v for _, v in bank_y), 2), "to_bank_count": len(bank_y),
+                "from_sells_eur": round(sum(spent_y.values()), 2), "sells_spent": len(spent_y), "days": SPEND_DAYS,
+                "monthly": [{"month": m, "eur": round(per[m], 2)} for m in months]}
     return {"empty": False, "sells": rows[::-1], "flows": flows, "spending": spending, "missed_eur": round(missed, 2), "avoided_eur": round(avoided, 2),
             "net_eur": round(missed - avoided, 2), "eurusd": clean(eurusd), "count": len(rows),
             "e_agreed": sum(1 for x in rows if x.get("rule_e_out") is True),
