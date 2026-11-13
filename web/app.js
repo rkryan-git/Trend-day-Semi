@@ -79,7 +79,8 @@ function spark(values, base, chg, color, times) {
     const flat = chg === 0;
     const area = `${d}L${w},${ref}L0,${ref}Z`;
     const tipData = ` data-v='${JSON.stringify(values)}' data-t='${JSON.stringify(times || [])}' data-lo="${lo}" data-hi="${hi}" data-h="${h}"${isNum(base) ? ` data-ref="${base}" data-ref-label="vs yesterday's close"` : ""}`;
-    const tl = times && times.length > 1 ? `<div class="chart-axis"><span>${esc(times[0])}</span><span>${esc(times[Math.floor(times.length / 2)])}</span><span>${esc(times[times.length - 1])}</span></div>` : "";
+    const hm = (s) => String(s || "").slice(-5);
+    const tl = times && times.length > 1 ? `<div class="chart-axis"><span>${esc(hm(times[0]))}</span><span>${esc(hm(times[Math.floor(times.length / 2)]))}</span><span>${esc(String(times[times.length - 1] || "").slice(0, -6))} ${esc(hm(times[times.length - 1]))}</span></div>` : "";
     return `<svg class="spark area-spark has-tip${flat ? " flat" : ""}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"${tipData}>
       <defs>
         <clipPath id="${id}u"><rect x="0" y="0" width="${w}" height="${ref}"/></clipPath>
@@ -142,14 +143,15 @@ function candles(c, prev, marks) {
   const vw = c.vwap.map((v, i) => (isNum(v) ? `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}` : "")).join("").replace(/^L/, "M");
   const pv = isNum(prev) ? `<line class="prev" x1="${L}" x2="${W - R}" y1="${y(prev).toFixed(1)}" y2="${y(prev).toFixed(1)}"/>` : "";
   let labels = "";
-  c.t.forEach((t, i) => { if (t.endsWith(":30") || t.endsWith(":00")) { if (i % Math.ceil(n / 7) === 0) labels += `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${t}</text>`; } });
+  c.t.forEach((t, i) => { const hm = String(t).slice(-5); if (hm.endsWith(":30") || hm.endsWith(":00")) { if (i % Math.ceil(n / 7) === 0) labels += `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${hm}</text>`; } });
   const mk = (marks || []).map((m) => {
     if (!isNum(m.bar) || m.bar >= n) return "";
     const xx = x(m.bar), yy = y(m.entry), up = m.side === "LONG";
     const p = up ? `${xx - 6},${yy + 14} ${xx + 6},${yy + 14} ${xx},${yy + 4}` : `${xx - 6},${yy - 14} ${xx + 6},${yy - 14} ${xx},${yy - 4}`;
     return `<polygon class="mark" points="${p}"><title>${esc(m.setup)} ${m.side} at ${fmt(m.entry)}</title></polygon>`;
   }).join("");
-  return `<svg class="candles" viewBox="0 0 ${W} ${H}" role="img" aria-label="5-minute candles with VWAP and yesterday's close">${g}${pv}${body}<path class="vwap" d="${vw}"/>${mk}${labels}</svg>`;
+  const tip = ` data-v='${JSON.stringify(c.c)}' data-t='${JSON.stringify(c.t)}' data-lo="${lo}" data-hi="${hi}" data-h="${H}" data-pt="${T}" data-pb="${B}" data-x0="${L}" data-x1="${W - R}" data-w="${W}"${isNum(prev) ? ` data-ref="${prev}" data-ref-label="vs yesterday's close"` : ""}`;
+  return `<svg class="candles has-tip" viewBox="0 0 ${W} ${H}" role="img" aria-label="5-minute candles with VWAP and yesterday's close"${tip}>${g}${pv}${body}<path class="vwap" d="${vw}"/>${mk}${labels}</svg>`;
 }
 
 // before / after bars. rows: [{label, without:{v,n}, with:{v,n}}]

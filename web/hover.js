@@ -23,7 +23,8 @@
     card.style.setProperty("--dy", dy.toFixed(3));
     const big = r.width > 700;                                                              // wide cards tilt less
     const k = big ? 1.2 : 4;
-    card.style.transform = `perspective(1000px) rotateX(${(-dy * k).toFixed(2)}deg) rotateY(${(dx * k).toFixed(2)}deg) translateY(-3px)`;
+    const lift = card.matches("button, a, [role='button']") ? " translateY(-3px)" : "";
+    card.style.transform = `perspective(1000px) rotateX(${(-dy * k).toFixed(2)}deg) rotateY(${(dx * k).toFixed(2)}deg)${lift}`;
   }
   document.addEventListener("pointermove", (e) => { ev = e; if (!raf) raf = requestAnimationFrame(frame); }, { passive: true });
   document.addEventListener("pointerleave", () => { leave(active); active = null; });
@@ -73,12 +74,14 @@
     const v = JSON.parse(svg.dataset.v || "[]"), t = JSON.parse(svg.dataset.t || "[]");
     if (v.length < 2) return;
     const r = svg.getBoundingClientRect();
-    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    const i = Math.round(f * (v.length - 1));
+    const W = +svg.dataset.w || 0, x0 = W ? (+svg.dataset.x0 / W) * r.width : 0, x1 = W ? (+svg.dataset.x1 / W) * r.width : r.width;
+    const centred = !!W;                                    // candles: one slot per bar, mark at the slot centre
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left - x0) / (x1 - x0)));
+    const i = centred ? Math.min(v.length - 1, Math.floor(f * v.length)) : Math.round(f * (v.length - 1));
     if (typeof v[i] !== "number") return;
     const lo = +svg.dataset.lo, hi = +svg.dataset.hi, pt = +svg.dataset.pt || 0, pb = +svg.dataset.pb || 0, H = +svg.dataset.h;
     const yVb = pt + (1 - (v[i] - lo) / ((hi - lo) || 1)) * (H - pt - pb);
-    const x = r.left + (i / (v.length - 1)) * r.width, y = r.top + (yVb / H) * r.height;
+    const x = r.left + (centred ? x0 + ((i + 0.5) / v.length) * (x1 - x0) : (i / (v.length - 1)) * r.width), y = r.top + (yVb / H) * r.height;
     line.style.cssText = `left:${x}px;top:${r.top}px;height:${r.height}px`;
     dot.style.cssText = `left:${x}px;top:${y}px`;
     const ref = svg.dataset.ref ? JSON.parse(svg.dataset.ref) : null;

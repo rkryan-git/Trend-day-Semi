@@ -249,7 +249,7 @@ def series_t(session: pd.DataFrame | None, n: int = 80) -> list:
     if session is None or session.empty:
         return []
     c = session["Close"].dropna()
-    t = [(i + pd.Timedelta(minutes=m.BAR_MINUTES)).tz_convert(AMS).strftime("%H:%M") for i in c.index]
+    t = [(i + pd.Timedelta(minutes=m.BAR_MINUTES)).tz_convert(AMS).strftime("%a %d %b %H:%M") for i in c.index]
     if len(t) > n:
         step = len(t) / n
         t = [t[int(i * step)] for i in range(n)] + [t[-1]]
@@ -499,7 +499,7 @@ def live(s: Settings) -> dict:
             "or": ({1: "Above", -1: "Below", 0: "Inside"}[sn.or_break] if sn.or_high else "Forming"),
             "rvol": clean(sn.rvol), "range_atr": clean(sn.range_atr), "score": clean(v.score), "verdict": v.label,
             "reasons": v.reasons, "spark": series(sess_df), "spark_t": series_t(sess_df), "prev_close": clean(sn.prev_close),
-            "candles": {"t": [x.tz_convert(AMS).strftime("%H:%M") for x in sess_df.index],
+            "candles": {"t": [(x + pd.Timedelta(minutes=m.BAR_MINUTES)).tz_convert(AMS).strftime("%a %d %b %H:%M") for x in sess_df.index],
                         "o": [clean(x) for x in sess_df["Open"]], "h": [clean(x) for x in sess_df["High"]],
                         "l": [clean(x) for x in sess_df["Low"]], "c": [clean(x) for x in sess_df["Close"]],
                         "vwap": [clean(x) for x in vw]},
