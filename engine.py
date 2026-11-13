@@ -738,6 +738,135 @@ def invest(s: Settings) -> dict:
 
 
 # ----------------------------------------------------------------------------
+# Exits: follow every stock you sold, as if you had kept it (T212 history export)
+# ----------------------------------------------------------------------------
+EXITS_FILE = HERE / "exits_trades.csv"          # private: gitignored, never zipped
+
+
+def _col(df, *names):
+    low = {c.lower().strip(): c for c in df.columns}
+    for n in names:
+        for k, c in low.items():
+            if k == n or k.startswith(n):
+                return c
+    return None
+
+
+def parse_t212(text: str) -> pd.DataFrame:
+    from io import StringIO
+    df = pd.read_csv(StringIO(text))
+    a, t = _col(df, "action"), _col(df, "time")
+    if a is None or t is None:
+        raise ValueError("This doesn't look like a Trading 212 history export (no Action / Time columns).")
+
+    def num(name):
+        c = _col(df, name)
+        return pd.to_numeric(df[c], errors="coerce") if c else np.nan
+
+    def txt(name):
+        c = _col(df, name)
+        return df[c].astype(str).str.strip() if c else ""
+    out = pd.DataFrame({"action": df[a].astype(str), "time": pd.to_datetime(df[t], errors="coerce"),
+                        "ticker": txt("ticker"), "name": txt("name"), "isin": txt("isin"),
+                        "shares": num("no. of shares"), "price": num("price / share"),
+                        "currency": txt("currency (price / share)"), "total_eur": num("total"), "result_eur": num("result")})
+    out = out[out["action"].str.contains("buy|sell", case=False, na=False) & out["time"].notna()].copy()
+    out["side"] = np.where(out["action"].str.contains("sell", case=False), "sell", "buy")
+    return out.sort_values("time").reset_index(drop=True)
+
+
+def _yahoo_symbols(ticker: str, currency: str) -> list:
+    t = str(ticker).upper().replace(" ", "")
+    cands = [t]
+    if str(currency).upper() == "EUR":
+        cands += [t + ".AS", t + ".DE", t + ".PA", t + ".MI"]
+    if str(currency).upper() in ("GBX", "GBP"):
+        cands += [t + ".L"]
+    return cands
+
+
+def save_exits(text: str) -> dict:
+    parse_t212(text)                                  # validate before saving
+    EXITS_FILE.write_text(text, encoding="utf-8")
+    return exits()
+
+
+def exits() -> dict:
+    if not EXITS_FILE.exists():
+        return {"empty": True}
+    tr = parse_t212(EXITS_FILE.read_text(encoding="utf-8"))
+    sells = tr[tr["side"] == "sell"]
+    if sells.empty:
+        return {"empty": False, "sells": [], "note": "No sells in this export."}
+    cand = {r["ticker"]: _yahoo_symbols(r["ticker"], r["currency"]) for _, r in sells.drop_duplicates("ticker").iterrows()}
+    allsyms = sorted({c for v in cand.values() for c in v} | {"SMH", "EURUSD=X"})
+    dly = load_daily(tuple(allsyms), "10y")
+
+    def closes(sym):
+        df = dly.get(sym)
+        return _closes(df) if df is not None and not df.empty else None
+    smh, fx = closes("SMH"), closes("EURUSD=X")
+    eurusd = float(fx.iloc[-1]) if fx is not None and len(fx) else None
+    smh_ma = smh.rolling(200).mean() if smh is not None else None
+    rows, missed, avoided = [], 0.0, 0.0
+    for _, r in sells.iterrows():
+        sym = next((c for c in cand[r["ticker"]] if closes(c) is not None), None)
+        base = {"ticker": r["ticker"], "name": r["name"], "date": str(r["time"].date()), "time": r["time"].strftime("%d %b %Y %H:%M"),
+                "shares": clean(r["shares"]), "price": clean(r["price"]), "currency": r["currency"],
+                "proceeds_eur": clean(r["total_eur"]), "realised_eur": clean(r["result_eur"])}
+        if sym is None:
+            rows.append({**base, "error": "No price history found for this ticker."})
+            continue
+        c = closes(sym)
+        later = tr[(tr["side"] == "buy") & (tr["ticker"] == r["ticker"]) & (tr["time"] > r["time"])]
+        end = later["time"].iloc[0] if not later.empty else None
+        path = c[c.index > r["time"].normalize()]
+        if end is not None:
+            path = path[path.index <= end.normalize()]
+        if path.empty:
+            rows.append({**base, "symbol": sym, "error": "Sold too recently: no close after the sale yet."})
+            continue
+        now_px = float(path.iloc[-1])
+        ok = pd.notna(r["shares"]) and pd.notna(r["price"])
+        diff_ccy = float(r["shares"]) * (now_px - float(r["price"])) if ok else None
+        cur = str(r["currency"]).upper()
+        to_eur = (1 / eurusd) if (cur == "USD" and eurusd) else (1.0 if cur == "EUR" else None)
+        diff_eur = diff_ccy * to_eur if (diff_ccy is not None and to_eur is not None) else None
+        if diff_eur is not None:
+            missed += max(diff_eur, 0)
+            avoided += max(-diff_eur, 0)
+        smh_chg, e_out = None, None
+        if smh is not None:
+            s0 = smh[smh.index <= r["time"].normalize()]
+            sp = smh[smh.index > r["time"].normalize()]
+            if end is not None:
+                sp = sp[sp.index <= end.normalize()]
+            if len(sp) and len(s0):
+                smh_chg = (float(sp.iloc[-1]) / float(s0.iloc[-1]) - 1) * 100
+            ma_s = c.rolling(200).mean()
+            before = c.index[c.index <= r["time"].normalize()]
+            if len(before):
+                d0 = before[-1]
+                if d0 in smh.index and pd.notna(smh_ma.get(d0)) and pd.notna(ma_s.get(d0)):
+                    e_out = not (bool(smh[d0] > smh_ma[d0]) or bool(c[d0] > ma_s[d0]))
+        step = max(1, len(path) // 120)
+        pc = path.iloc[::step]
+        rows.append({**base, "symbol": sym, "now": clean(now_px), "until": str(end.date()) if end is not None else None,
+                     "rebought_at": clean(later["price"].iloc[0]) if not later.empty else None,
+                     "chg_since": clean((now_px / float(r["price"]) - 1) * 100) if ok else None,
+                     "diff_eur": clean(diff_eur), "diff_ccy": clean(diff_ccy),
+                     "best_after": clean((float(path.max()) / float(r["price"]) - 1) * 100) if ok else None,
+                     "worst_after": clean((float(path.min()) / float(r["price"]) - 1) * 100) if ok else None,
+                     "smh_chg": clean(smh_chg), "rule_e_out": e_out,
+                     "chart": {"c": [clean(v) for v in pc.values] + [clean(now_px)],
+                               "t": [d.strftime("%d %b %y") for d in pc.index] + [path.index[-1].strftime("%d %b %y")]}})
+    return {"empty": False, "sells": rows[::-1], "missed_eur": round(missed, 2), "avoided_eur": round(avoided, 2),
+            "net_eur": round(missed - avoided, 2), "eurusd": clean(eurusd), "count": len(rows),
+            "e_agreed": sum(1 for x in rows if x.get("rule_e_out") is True),
+            "e_known": sum(1 for x in rows if x.get("rule_e_out") is not None)}
+
+
+# ----------------------------------------------------------------------------
 # Signal log, spread log
 # ----------------------------------------------------------------------------
 def signal_log(s: Settings) -> dict:

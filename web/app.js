@@ -775,7 +775,7 @@ document.addEventListener("click", (e) => {
 // ------------------------------------------------------------------ accounts (CFD / Invest), like T212
 const ACCOUNTS = {
   cfd: [["live", "Live"], ["log", "Signal log"], ["spread", "Spread log"], ["backtest", "Backtest"], ["long", "2-year check"], ["guide", "Guide"]],
-  invest: [["invest", "Trend"], ["invest-research", "Research"], ["invest-guide", "Guide"]],
+  invest: [["invest", "Trend"], ["invest-exits", "Exits"], ["invest-research", "Research"], ["invest-guide", "Guide"]],
 };
 const acctOf = (tab) => (ACCOUNTS.invest.some(([t]) => t === tab) ? "invest" : "cfd");
 let currentAcct = null;
@@ -820,7 +820,7 @@ document.addEventListener("click", (e) => {
 // ------------------------------------------------------------------ routing
 let currentTab = "live";
 const RENDER = { live: () => (liveData ? renderLive(liveData) : null, loadLive()), log: renderLog, spread: () => renderSpread(), backtest: renderBacktest, long: renderLong, guide: renderGuide,
-  invest: () => { renderInvest(); loadInvest(); }, "invest-research": renderInvestResearch, "invest-guide": renderInvestGuide };
+  invest: () => { renderInvest(); loadInvest(); }, "invest-exits": () => renderExits(), "invest-research": renderInvestResearch, "invest-guide": renderInvestGuide };
 function route() {
   const tab = (location.hash || "#live").slice(1);
   currentTab = RENDER[tab] ? tab : "live";

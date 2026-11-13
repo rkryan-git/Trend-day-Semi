@@ -58,6 +58,20 @@ async def api_invest(request):
         return err(e)
 
 
+async def api_exits(request):
+    try:
+        if request.method == "POST":
+            raw = await request.body()
+            if len(raw) > 5_000_000:
+                return err(ValueError("File too large."), 400)
+            return JSONResponse(await run(engine.save_exits, raw.decode("utf-8-sig", errors="replace")))
+        return JSONResponse(await run(engine.exits))
+    except ValueError as e:
+        return err(e, 400)
+    except Exception as e:
+        return err(e)
+
+
 async def api_log(request):
     try:
         return JSONResponse(await run(engine.signal_log, engine.Settings.from_query(request.query_params)))
@@ -114,6 +128,7 @@ app = Starlette(routes=[
     Route("/api/schema", api_schema),
     Route("/api/news/{ticker}", api_news),
     Route("/api/invest", api_invest),
+    Route("/api/exits", api_exits, methods=["GET", "POST"]),
     Route("/api/log", api_log),
     Route("/api/log.csv", api_log_csv),
     Route("/api/spread", api_spread, methods=["GET", "POST"]),
