@@ -638,6 +638,93 @@ def news(ticker: str) -> list:
 
 
 # ----------------------------------------------------------------------------
+# Invest: rule E (out of a stock only when both SMH and the stock close below their 200-day average)
+# Pre-registered research: Downloads/semi-trend-day-data/invest_round3_results.md and invest_2023_results.md
+# ----------------------------------------------------------------------------
+INVEST_LOG = HERE / "invest_log.csv"
+
+
+def _closes(df):
+    col = "Adj Close" if "Adj Close" in df.columns else "Close"
+    c = df[col].dropna().astype(float)
+    c.index = pd.to_datetime(c.index)
+    return c
+
+
+def invest(s: Settings) -> dict:
+    now_ny = datetime.now(AMS).astimezone(NY)
+    phase = market_status(now_ny)
+    names = list(dict.fromkeys(s.watch + ["SMH"]))
+    dly = load_daily(tuple(sorted(names)), "2y")
+    if dly.get("SMH") is None or dly["SMH"].empty:
+        return {"error": "No SMH data from Yahoo right now."}
+    smh = _closes(dly["SMH"])
+    partial = phase in ("open", "pre") and smh.index[-1].date() == now_ny.date()
+    smh_ma = smh.rolling(200).mean()
+    mkt_up = smh > smh_ma
+
+    def last_flip(series):
+        sr = series.dropna()
+        if sr.empty:
+            return None
+        ch = sr.ne(sr.shift())
+        return str(sr.index[ch][-1].date()) if ch.any() else None
+
+    def chart(c, ma, n=260, k=130):
+        c, ma = c.tail(n), ma.tail(n)
+        step = max(1, len(c) // k)
+        cc, mm = c.iloc[::step], ma.iloc[::step]
+        return {"c": [clean(v) for v in cc.values], "ma": [clean(v) for v in mm.values],
+                "t": [d.strftime("%d %b %y") for d in cc.index]}
+
+    hi52 = smh.tail(252).max()
+    market = {"close": clean(smh.iloc[-1]), "ma200": clean(smh_ma.iloc[-1]),
+              "dist": clean((smh.iloc[-1] / smh_ma.iloc[-1] - 1) * 100), "up": bool(mkt_up.iloc[-1]),
+              "since": last_flip(mkt_up[smh_ma.notna()]), "date": str(smh.index[-1].date()), "partial": partial,
+              "drawdown": clean((smh.iloc[-1] / hi52 - 1) * 100), "high_date": str(smh.tail(252).idxmax().date()),
+              "chart": chart(smh, smh_ma)}
+    stocks, log_rows = [], []
+    for t in s.watch:
+        df = dly.get(t)
+        if df is None or df.empty:
+            stocks.append({"ticker": t, "error": "no data"})
+            continue
+        c = _closes(df)
+        ma = c.rolling(200).mean()
+        own_up = c > ma
+        m = mkt_up.reindex(c.index).ffill().fillna(False).astype(bool)
+        e_in = (m | own_up)[ma.notna()]
+        h = c.tail(252).max()
+        stocks.append({"ticker": t, "close": clean(c.iloc[-1]), "ma200": clean(ma.iloc[-1]),
+                       "dist": clean((c.iloc[-1] / ma.iloc[-1] - 1) * 100) if pd.notna(ma.iloc[-1]) else None,
+                       "own_up": bool(own_up.iloc[-1]), "rule_in": bool(e_in.iloc[-1]) if len(e_in) else True,
+                       "since": last_flip(e_in), "drawdown": clean((c.iloc[-1] / h - 1) * 100),
+                       "chg_1y": clean((c.iloc[-1] / c.iloc[-min(len(c), 252)] - 1) * 100), "chart": chart(c, ma),
+                       "enough_history": bool(ma.notna().any())})
+        # live log: one row per stock per completed session (today's bar only after the close)
+        ok = e_in.iloc[:-1] if partial else e_in
+        if len(ok):
+            dte = ok.index[-1]
+            log_rows.append({"date": str(dte.date()), "ticker": t, "smh_above_200d": bool(mkt_up.get(dte, False)),
+                             "stock_above_200d": bool(own_up.get(dte, False)), "rule_e": "IN" if ok.iloc[-1] else "OUT",
+                             "close": round(float(c.get(dte)), 4), "ma200": round(float(ma.get(dte)), 4) if pd.notna(ma.get(dte)) else None})
+    try:
+        old = pd.read_csv(INVEST_LOG, dtype={"date": str}) if INVEST_LOG.exists() else pd.DataFrame()
+        new = pd.DataFrame(log_rows)
+        if not new.empty:
+            keys = set(zip(old.get("date", []), old.get("ticker", []))) if not old.empty else set()
+            new = new[[(d, t) not in keys for d, t in zip(new["date"], new["ticker"])]]
+            if not new.empty:
+                pd.concat([old, new], ignore_index=True).to_csv(INVEST_LOG, index=False)
+        logged = int(len(pd.read_csv(INVEST_LOG))) if INVEST_LOG.exists() else 0
+    except Exception as e:
+        logged = f"log error: {e}"
+    out_now = [x["ticker"] for x in stocks if x.get("enough_history") and not x.get("rule_in")]
+    return {"phase": phase, "market": market, "stocks": stocks, "out": out_now, "logged": logged,
+            "updated": datetime.now(AMS).strftime("%H:%M:%S")}
+
+
+# ----------------------------------------------------------------------------
 # Signal log, spread log
 # ----------------------------------------------------------------------------
 def signal_log(s: Settings) -> dict:

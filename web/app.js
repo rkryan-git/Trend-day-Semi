@@ -23,13 +23,14 @@ async function api(path, opts) {
 
 // ------------------------------------------------------------------ settings
 const DEFAULTS = { watch: "MU, SNDK, WDC, LRCX, AMAT, ASML, AMD", sector: "SMH", refresh: 60, long_only: true,
-  require_sector: true, spread: 0.25, show_orb: false, exit: "", capital: 2000, risk_day: 1, stop: 3, size_mode: "one" };
+  require_sector: true, spread: 0.25, show_orb: false, exit: "", capital: 2000, risk_day: 1, stop: 3, size_mode: "one", sound: true };
 let S = load("stdr.settings", DEFAULTS);
 let SCHEMA = { exit_options: [], evidence: {} };
 function load(k, d) { try { return { ...d, ...JSON.parse(localStorage.getItem(k) || "{}") }; } catch (e) { return { ...d }; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
 function qs(extra = {}) {
-  const p = new URLSearchParams({ ...S, ...extra });
+  const { sound, ...rest } = S;
+  const p = new URLSearchParams({ ...rest, ...extra });
   return p.toString();
 }
 
@@ -727,6 +728,7 @@ function renderSettings() {
       ${field("Stop (%)", `<input class="input" name="stop" type="number" min="0.5" max="10" step="0.5" value="${esc(S.stop)}">`)}
       ${field("When several signals fire", seg("size_mode", [["one", "One trade per day"], ["split", "Split the day's risk"]]), "One trade: the earliest signal, ties go to the calmest stock. Split: signals at the same time share the budget; later ones are skipped.")}
     </div>
+    <div class="group">${sw("sound", "Sound when switching between CFD and Invest")}</div>
     <p class="muted" style="font-size:12px;margin:0">Signals are written to signal_log.csv next to the app. Not financial advice.</p>`;
 }
 document.addEventListener("click", (e) => {
@@ -737,12 +739,57 @@ document.addEventListener("click", (e) => {
   grp.nextElementSibling.value = b.dataset.val;
 });
 
+// ------------------------------------------------------------------ accounts (CFD / Invest), like T212
+const ACCOUNTS = {
+  cfd: [["live", "Live"], ["log", "Signal log"], ["spread", "Spread log"], ["backtest", "Backtest"], ["long", "2-year check"], ["guide", "Guide"]],
+  invest: [["invest", "Trend"], ["invest-research", "Research"], ["invest-guide", "Guide"]],
+};
+const acctOf = (tab) => (ACCOUNTS.invest.some(([t]) => t === tab) ? "invest" : "cfd");
+let currentAcct = null;
+function renderTabs(acct) {
+  if (acct === currentAcct) return;
+  currentAcct = acct;
+  $("#tabs").innerHTML = ACCOUNTS[acct].map(([t, l]) => `<a href="#${t}" data-tab="${t}">${l}</a>`).join("");
+  document.body.dataset.acct = acct;
+  document.querySelectorAll(".acct button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.acct === acct));
+  placeAcctPill();
+  try { localStorage.setItem("stdr.acct", acct); } catch (e) { /* ignore */ }
+}
+function placeAcctPill() {
+  const pill = $(".acct-pill"), on = $(`.acct button[data-acct="${currentAcct}"]`);
+  if (pill && on) { pill.style.left = `${on.offsetLeft}px`; pill.style.width = `${on.offsetWidth}px`; }
+}
+
+// the first part of semitrendaudio.mp3 (0 to 0.96 s, the first swell) plays on the account switch
+let sfx = null, sfxCtx = null;
+async function playSwitch() {
+  if (S.sound === false) return;
+  try {
+    sfxCtx = sfxCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (!sfx) sfx = await sfxCtx.decodeAudioData(await (await fetch("/web/sound/switch.mp3")).arrayBuffer());
+    const src = sfxCtx.createBufferSource(), g = sfxCtx.createGain(), t = sfxCtx.currentTime;
+    g.gain.setValueAtTime(0.9, t); g.gain.setValueAtTime(0.9, t + 0.86); g.gain.linearRampToValueAtTime(0, t + 0.96);
+    src.buffer = sfx; src.connect(g).connect(sfxCtx.destination); src.start(t, 0, 0.96);
+  } catch (e) { /* sound is optional */ }
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".acct button");
+  if (!b || b.dataset.acct === currentAcct) return;
+  playSwitch();
+  let last = null;
+  try { last = localStorage.getItem(`stdr.tab.${b.dataset.acct}`); } catch (er) { /* ignore */ }
+  location.hash = "#" + (last && acctOf(last) === b.dataset.acct ? last : ACCOUNTS[b.dataset.acct][0][0]);
+});
+
 // ------------------------------------------------------------------ routing
 let currentTab = "live";
-const RENDER = { live: () => (liveData ? renderLive(liveData) : null, loadLive()), log: renderLog, spread: () => renderSpread(), backtest: renderBacktest, long: renderLong, guide: renderGuide };
+const RENDER = { live: () => (liveData ? renderLive(liveData) : null, loadLive()), log: renderLog, spread: () => renderSpread(), backtest: renderBacktest, long: renderLong, guide: renderGuide,
+  invest: () => { renderInvest(); loadInvest(); }, "invest-research": renderInvestResearch, "invest-guide": renderInvestGuide };
 function route() {
   const tab = (location.hash || "#live").slice(1);
   currentTab = RENDER[tab] ? tab : "live";
+  renderTabs(acctOf(currentTab));
+  try { localStorage.setItem(`stdr.tab.${currentAcct}`, currentTab); } catch (e) { /* ignore */ }
   document.querySelectorAll(".page").forEach((p) => (p.hidden = p.dataset.page !== currentTab));
   document.querySelectorAll(".tabs a").forEach((a) => (a.dataset.tab === currentTab ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
   movePill();
@@ -786,6 +833,7 @@ async function init() {
     applyTheme(themeChoice);
   };
   addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY > 4), { passive: true });
+  addEventListener("resize", () => { placeAcctPill(); movePill(); });
   try { SCHEMA = await api("/api/schema"); } catch (e) { /* defaults */ }
   try { LOGOS = await (await fetch("/web/logos/manifest.json")).json(); } catch (e) { LOGOS = {}; }
   if (!SCHEMA.exit_options.includes(S.exit)) S.exit = SCHEMA.exit_options[0] || "";
@@ -799,13 +847,15 @@ async function init() {
     S = { ...S, watch: f.get("watch") || DEFAULTS.watch, sector: f.get("sector"), refresh: Number(f.get("refresh")),
       long_only: f.has("long_only"), require_sector: f.has("require_sector"), spread: Number(f.get("spread")),
       show_orb: f.has("show_orb"), exit: f.get("exit"), capital: Number(f.get("capital")), risk_day: Number(f.get("risk_day")),
-      stop: Number(f.get("stop")), size_mode: f.get("size_mode") };
+      stop: Number(f.get("stop")), size_mode: f.get("size_mode"), sound: f.has("sound") };
     save("stdr.settings", S);
     liveData = null; btCache = null;
     route();
   });
   addEventListener("hashchange", route);
   document.addEventListener("visibilitychange", () => { if (!document.hidden && currentTab === "live") loadLive(); });
+  if (!location.hash) { let a = null; try { a = localStorage.getItem("stdr.acct"); } catch (e) { /* ignore */ }
+    if (a === "invest") location.hash = "#invest"; }
   route();
   if (currentTab !== "live") loadLive();   // keeps the status in the nav current on every tab
 }

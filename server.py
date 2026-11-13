@@ -51,6 +51,13 @@ async def api_news(request):
         return err(e)
 
 
+async def api_invest(request):
+    try:
+        return JSONResponse(await run(engine.invest, engine.Settings.from_query(request.query_params)))
+    except Exception as e:
+        return err(e)
+
+
 async def api_log(request):
     try:
         return JSONResponse(await run(engine.signal_log, engine.Settings.from_query(request.query_params)))
@@ -106,6 +113,7 @@ app = Starlette(routes=[
     Route("/api/live", api_live),
     Route("/api/schema", api_schema),
     Route("/api/news/{ticker}", api_news),
+    Route("/api/invest", api_invest),
     Route("/api/log", api_log),
     Route("/api/log.csv", api_log_csv),
     Route("/api/spread", api_spread, methods=["GET", "POST"]),

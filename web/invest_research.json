@@ -1,0 +1,19 @@
+{
+  "rule": "Out of a stock only when both SMH and that stock close below their own 200-day average; back in when either closes above it. Decided at the close, acted on at the next open.",
+  "tested": "Pre-registered tests on Tiingo daily data, 13 Nov 2026: 16 exit rules in 3 rounds (trend filters, volatility, radar days, ATR stops, trimming, EMA/Hull averages, slope, credit stress, volatility targeting, rotation, VXN). Rule E was the most consistent; none beat simply holding on return in every period.",
+  "periods": [
+    {"name": "2014 to 2024", "hold_cagr": 25.5, "e_cagr": 21.3, "hold_dd": -53.5, "e_dd": -43.1, "note": "Daily-rebalanced equal-weight basket of MU, WDC, LRCX, AMAT, ASML, AMD, 0.10% cost per switch."},
+    {"name": "2023 to Nov 2026", "hold_cagr": 83.6, "e_cagr": 77.4, "hold_dd": -51.1, "e_dd": -39.5, "note": "Same basket plus SNDK from Feb 2025. Bought once and left to drift, rule E kept the full return (87.6% vs 87.0%)."},
+    {"name": "2002 to 2026", "hold_cagr": 23.2, "e_cagr": 21.1, "hold_dd": -72.2, "e_dd": -43.1, "note": "Includes the 2008 crash, where holding fell 72%."}
+  ],
+  "crash_2025": {"hold": -35.2, "e": -6.6, "label": "April 2025 crash, peak to trough"},
+  "cycles": [
+    {"peak": "Jan 2001", "low": "Nov 2008", "drop": -74, "recovered": "Jun 2014", "months": 67},
+    {"peak": "Mar 2018", "low": "Dec 2018", "drop": -27, "recovered": "Apr 2019", "months": 3},
+    {"peak": "Feb 2020", "low": "Mar 2020", "drop": -34, "recovered": "Jun 2020", "months": 3},
+    {"peak": "Dec 2021", "low": "Oct 2022", "drop": -45, "recovered": "Jul 2023", "months": 9},
+    {"peak": "Jul 2024", "low": "Apr 2025", "drop": -36, "recovered": "Jul 2025", "months": 3}
+  ],
+  "best_near_worst": "12 of SMH's 20 best days since 2001 came within a month of one of its 20 worst days.",
+  "files": ["prereg_invest_protection.md", "invest_protection_results.md", "prereg_invest_models.md", "invest_models_results.md", "prereg_invest_2023.md", "invest_2023_results.md", "prereg_invest_round3.md", "invest_round3_results.md"]
+}

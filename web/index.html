@@ -19,7 +19,7 @@
   })();
 </script>
 <link rel="stylesheet" href="/web/app.css?v=7">
-<link rel="stylesheet" href="/web/glass.css?v=14">
+<link rel="stylesheet" href="/web/glass.css?v=15">
 <link rel="stylesheet" href="/web/refract.css?v=2">
 </head>
 <body>
@@ -32,14 +32,12 @@
       <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18a9 9 0 0 1 18 0" /><path d="M7.5 18a4.5 4.5 0 0 1 9 0" /><circle cx="12" cy="18" r="1.6" /></svg>
       <span class="brand-name">Semi Trend-Day Radar</span>
     </a>
-    <nav class="tabs" aria-label="Sections">
-      <a href="#live" data-tab="live">Live</a>
-      <a href="#log" data-tab="log">Signal log</a>
-      <a href="#spread" data-tab="spread">Spread log</a>
-      <a href="#backtest" data-tab="backtest">Backtest</a>
-      <a href="#long" data-tab="long">2-year check</a>
-      <a href="#guide" data-tab="guide">Guide</a>
-    </nav>
+    <div class="acct" role="group" aria-label="Account">
+      <span class="acct-pill" aria-hidden="true"></span>
+      <button type="button" data-acct="cfd" aria-pressed="true">CFD</button>
+      <button type="button" data-acct="invest" aria-pressed="false">Invest</button>
+    </div>
+    <nav class="tabs" aria-label="Sections" id="tabs"></nav>
     <div class="nav-tools">
       <span class="status" id="status" aria-live="polite"><i class="dot"></i><span>Loading</span></span>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme: system"></button>
@@ -55,6 +53,9 @@
   <section class="page" id="page-backtest" data-page="backtest" hidden></section>
   <section class="page" id="page-long" data-page="long" hidden></section>
   <section class="page" id="page-guide" data-page="guide" hidden></section>
+  <section class="page" id="page-invest" data-page="invest" hidden></section>
+  <section class="page" id="page-invest-research" data-page="invest-research" hidden></section>
+  <section class="page" id="page-invest-guide" data-page="invest-guide" hidden></section>
 </main>
 
 <footer class="wrap foot">
@@ -77,6 +78,7 @@
   </form>
 </dialog>
 
-<script src="/web/app.js?v=16" defer></script>
+<script src="/web/invest.js?v=1" defer></script>
+<script src="/web/app.js?v=18" defer></script>
 </body>
 </html>
