@@ -344,15 +344,21 @@ function renderLive(d) {
 
   // ---- news radar
   const nf = d.news || { items: [], error: null };
-  const newsSec = `<section class="section" aria-labelledby="h-news">
-    <div class="section-head"><h2 class="h-section ${rv()}" id="h-news">News radar</h2>
-      <p class="prose ${rv()}">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Sorted by impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
-    <div class="glass news-list ${rv()}">${nf.error ? `<p class="empty">${esc(nf.error)}</p>` : !nf.items.length ? '<p class="empty">No headlines in the last 24 hours.</p>' :
+  let newsOpen = false;
+  try { newsOpen = localStorage.getItem("stdr.newsOpen") === "1"; } catch (e) { /* closed by default */ }
+  const nCount = nf.items ? nf.items.filter((n) => !breaking.some((b) => b.headline === n.headline)).slice(0, 18).length : 0;
+  const nHigh = nf.items ? nf.items.filter((n) => n.impact === "high").length : 0;
+  const newsSec = `<details class="section news-fold" id="newsFold" ${newsOpen ? "open" : ""}>
+    <summary class="fold-sum"><h2 class="h-section" id="h-news">News radar</h2>
+      <span class="fold-meta">${nCount} headline${nCount === 1 ? "" : "s"}${nHigh ? ` · ${nHigh} high impact` : ""}</span>
+      <svg class="fold-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="section-head fold-body"><p class="prose">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Sorted by impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
+    <div class="glass news-list">${nf.error ? `<p class="empty">${esc(nf.error)}</p>` : !nf.items.length ? '<p class="empty">No headlines in the last 24 hours.</p>' :
       nf.items.filter((n) => !breaking.some((b) => b.headline === n.headline)).slice(0, 18).map((n) => `<a class="news-row imp-${n.impact}" href="${esc(n.url)}" target="_blank" rel="noopener">
         <span class="label">${esc(n.time)}${n.age_min >= 600 ? " · " + esc(n.day) : ""}</span>
         <span class="imp">${n.impact === "high" ? "High" : n.impact === "medium" ? "Medium" : ""}</span>
         <span class="hl">${esc(n.headline)}</span>
-        <span class="syms">${n.symbols.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</span></a>`).join("")}</div></section>`;
+        <span class="syms">${n.symbols.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</span></a>`).join("")}</div></details>`;
 
   // ---- radar
   const rows = d.radar.rows.filter((r) => r.level), rates = d.radar.rates;
@@ -785,7 +791,7 @@ function renderTabs(acct) {
   currentAcct = acct;
   $("#tabs").innerHTML = ACCOUNTS[acct].map(([t, l]) => `<a href="#${t}" data-tab="${t}">${l}</a>`).join("");
   document.body.dataset.acct = acct;
-  document.querySelectorAll(".acct button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.acct === acct));
+  document.querySelectorAll(".acct button, .dock button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.acct === acct));
   placeAcctPill();
   try { localStorage.setItem("stdr.acct", acct); } catch (e) { /* ignore */ }
 }
@@ -810,13 +816,18 @@ async function playSwitch() {
   } catch (e) { /* sound is optional */ }
 }
 document.addEventListener("click", (e) => {
-  const b = e.target.closest(".acct button");
+  const b = e.target.closest(".acct button, .dock button");
   if (!b || b.dataset.acct === currentAcct) return;
   playSwitch();
   let last = null;
   try { last = localStorage.getItem(`stdr.tab.${b.dataset.acct}`); } catch (er) { /* ignore */ }
   location.hash = "#" + (last && acctOf(last) === b.dataset.acct ? last : ACCOUNTS[b.dataset.acct][0][0]);
 });
+
+document.addEventListener("toggle", (e) => {
+  if (e.target.id !== "newsFold") return;
+  try { localStorage.setItem("stdr.newsOpen", e.target.open ? "1" : "0"); } catch (er) { /* ignore */ }
+}, true);
 
 // ------------------------------------------------------------------ routing
 let currentTab = "live";

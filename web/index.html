@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Semi Trend-Day Radar</title>
 <meta name="description" content="Live decision desk for MU, SNDK, WDC, LRCX, AMAT, ASML and AMD: big-day radar, two tested setups, sizing and a signal log.">
 <link rel="icon" href="/web/favicon.svg" type="image/svg+xml">
@@ -25,7 +25,7 @@
   })();
 </script>
 <link rel="stylesheet" href="/web/app.css?v=7">
-<link rel="stylesheet" href="/web/glass.css?v=20">
+<link rel="stylesheet" href="/web/glass.css?v=21">
 <link rel="stylesheet" href="/web/refract.css?v=2">
 </head>
 <body>
@@ -69,6 +69,15 @@
   <p>Data: Yahoo Finance via yfinance, free and sometimes a few minutes late. Every number comes from past data and can stop working. Not financial advice.</p>
 </footer>
 
+<nav class="dock" aria-label="Account">
+  <button type="button" data-acct="cfd" aria-pressed="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M7 15v6M17 3v8M17 19v2"/><rect x="4.5" y="7" width="5" height="8" rx="1"/><rect x="14.5" y="11" width="5" height="8" rx="1"/></svg>
+    <span>CFD</span></button>
+  <button type="button" data-acct="invest" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9"/><path d="M12 12c0-4 3-7 8-7 0 5-3 7-8 7z"/><path d="M12 15c0-3-2.5-5.5-7-5.5 0 4 2.5 5.5 7 5.5z"/></svg>
+    <span>Invest</span></button>
+</nav>
+
 <dialog class="drawer" id="drawer" aria-labelledby="drawerTitle">
   <form method="dialog" class="drawer-inner" id="settingsForm">
     <div class="drawer-head">
@@ -89,7 +98,7 @@
 <script src="/web/invest.js?v=3" defer></script>
 <script src="/web/exits.js?v=4" defer></script>
 <script src="/web/push.js?v=1" defer></script>
-<script src="/web/app.js?v=28" defer></script>
+<script src="/web/app.js?v=29" defer></script>
 <script src="/web/hover.js?v=2" defer></script>
 </body>
 </html>
