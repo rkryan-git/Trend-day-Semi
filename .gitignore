@@ -11,3 +11,5 @@ push_subs.json
 push_state.json
 *.tmp
 server.log
+design/audits/**/*exit*
+design/audits/**/*Exit*
