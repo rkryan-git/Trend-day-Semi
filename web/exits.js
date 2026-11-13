@@ -45,10 +45,10 @@ async function renderExits(msg = "") {
           <span class="status-tag ${s.diff_eur > 0 ? "loss" : "gain"}"><i></i>${s.diff_eur > 0 ? "Missed" : "Avoided"} ${eurS(Math.abs(s.diff_eur || 0)).replace(/^[+−]/, "")}</span></div>
         <div class="inv-px"><span class="px">${fmt(s.now)} <span class="muted" style="font-size:13px">${esc(s.currency)}</span></span>
           <span class="muted">sold ${fmt(s.price)} on ${esc(s.time.slice(0, 11))}</span></div>
-        ${exitChart(s.chart, s.price)}
+        ${exitChart(s.chart, s.ref_px || s.price)}
         <div class="chips"><span class="chip">since you sold ${pct(s.chg_since, 1)}</span><span class="chip">best after ${pct(s.best_after, 0)}</span>
           <span class="chip">worst after ${pct(s.worst_after, 0)}</span>${isNum(s.smh_chg) ? `<span class="chip">SMH same period ${pct(s.smh_chg, 1)}</span>` : ""}</div>
-        <p class="sub" style="font-size:12px">${s.until ? `Followed until you bought back on ${esc(s.until)} at ${fmt(s.rebought_at)}. ` : ""}${s.rule_e_out === true ? "Rule E agreed with this sell: the stock and SMH were both below their 200-day average." : s.rule_e_out === false ? "Rule E would have kept holding." : ""}</p>
+        <p class="sub" style="font-size:12px">${s.foreign_listing ? `Price data from ${esc(s.symbol)} (another listing), measured from its close on the day you sold. ` : ""}${s.until ? `Followed until you bought back on ${esc(s.until)} at ${fmt(s.rebought_at)}. ` : ""}${s.rule_e_out === true ? "Rule E agreed with this sell: the stock and SMH were both below their 200-day average." : s.rule_e_out === false ? "Rule E would have kept holding." : ""}</p>
       </article>`).join("");
     p.innerHTML = `${head("Exits", "Every stock you sold, followed as if you had kept it.")}
       <section class="hero" data-tone="${good ? "gain" : "loss"}"><div class="glass hero-card">

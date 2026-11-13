@@ -766,22 +766,38 @@ def parse_t212(text: str) -> pd.DataFrame:
     def txt(name):
         c = _col(df, name)
         return df[c].astype(str).str.strip() if c else ""
-    out = pd.DataFrame({"action": df[a].astype(str), "time": pd.to_datetime(df[t], errors="coerce"),
+    tm = pd.to_datetime(df[t], errors="coerce", utc=True)            # newer exports: "Time (UTC)" with +00:00
+    tm = tm.dt.tz_convert("Europe/Amsterdam").dt.tz_localize(None)    # compare as plain Amsterdam time
+    out = pd.DataFrame({"action": df[a].astype(str), "time": tm,
                         "ticker": txt("ticker"), "name": txt("name"), "isin": txt("isin"),
                         "shares": num("no. of shares"), "price": num("price / share"),
-                        "currency": txt("currency (price / share)"), "total_eur": num("total"), "result_eur": num("result")})
+                        "currency": txt("currency (price / share)"),
+                        "total_eur": num("total") if _col(df, "total") else num("gross total"), "result_eur": num("result")})
     out = out[out["action"].str.contains("buy|sell", case=False, na=False) & out["time"].notna()].copy()
     out["side"] = np.where(out["action"].str.contains("sell", case=False), "sell", "buy")
     return out.sort_values("time").reset_index(drop=True)
 
 
-def _yahoo_symbols(ticker: str, currency: str) -> list:
-    t = str(ticker).upper().replace(" ", "")
-    cands = [t]
-    if str(currency).upper() == "EUR":
-        cands += [t + ".AS", t + ".DE", t + ".PA", t + ".MI"]
-    if str(currency).upper() in ("GBX", "GBP"):
-        cands += [t + ".L"]
+@ttl_cache(7 * 24 * 3600)
+def _isin_symbols(isin: str) -> tuple:
+    try:
+        import yfinance as yf
+        return tuple(q.get("symbol") for q in yf.Search(isin, max_results=5).quotes if q.get("symbol"))
+    except Exception:
+        return ()
+
+
+def _yahoo_symbols(ticker: str, currency: str, isin: str = "") -> list:
+    t = str(ticker).upper().replace(" ", "").replace("/", "-")
+    cur = str(currency).upper()
+    if cur == "EUR":
+        cands = [t + ".F", t + ".DE", t + ".AS", t + ".PA", t + ".MI", t]
+    elif cur in ("GBX", "GBP"):
+        cands = [t + ".L", t]
+    else:
+        cands = [t]
+    if isin and isin.lower() != "nan":
+        cands += [x for x in _isin_symbols(isin) if x not in cands]
     return cands
 
 
@@ -814,7 +830,7 @@ def exits() -> dict:
     sells = tr[tr["side"] == "sell"]
     if sells.empty:
         return {"empty": False, "sells": [], "note": "No sells in this export."}
-    cand = {r["ticker"]: _yahoo_symbols(r["ticker"], r["currency"]) for _, r in sells.drop_duplicates("ticker").iterrows()}
+    cand = {r["ticker"]: _yahoo_symbols(r["ticker"], r["currency"], r["isin"]) for _, r in sells.drop_duplicates("ticker").iterrows()}
     allsyms = sorted({c for v in cand.values() for c in v} | {"SMH", "EURUSD=X"})
     dly = load_daily(tuple(allsyms), "10y")
 
@@ -836,18 +852,28 @@ def exits() -> dict:
         c = closes(sym)
         later = tr[(tr["side"] == "buy") & (tr["ticker"] == r["ticker"]) & (tr["time"] > r["time"])]
         end = later["time"].iloc[0] if not later.empty else None
-        path = c[c.index > r["time"].normalize()]
+        path = c[c.index >= r["time"].normalize()]
         if end is not None:
             path = path[path.index <= end.normalize()]
         if path.empty:
-            rows.append({**base, "symbol": sym, "error": "Sold too recently: no close after the sale yet."})
+            rows.append({**base, "symbol": sym, "error": "Sold today: the first close after the sale isn't in yet."})
             continue
         now_px = float(path.iloc[-1])
         ok = pd.notna(r["shares"]) and pd.notna(r["price"])
-        diff_ccy = float(r["shares"]) * (now_px - float(r["price"])) if ok else None
+        ref = float(r["price"]) if ok else float(path.iloc[0])
+        day_close = float(path.iloc[0])
+        foreign = not (0.67 < ref / day_close < 1.5)          # listing quoted in another currency (e.g. Tokyo in yen)
+        if foreign:
+            ref = day_close
+        move = now_px / ref - 1
+        diff_ccy = float(r["shares"]) * (now_px - ref) if (ok and not foreign) else None
+        proceeds = abs(float(r["total_eur"])) if pd.notna(r["total_eur"]) and float(r["total_eur"]) != 0 else None
         cur = str(r["currency"]).upper()
-        to_eur = (1 / eurusd) if (cur == "USD" and eurusd) else (1.0 if cur == "EUR" else None)
-        diff_eur = diff_ccy * to_eur if (diff_ccy is not None and to_eur is not None) else None
+        if proceeds is not None:
+            diff_eur = proceeds * move                            # euros you received, times what the stock did after
+        else:
+            to_eur = (1 / eurusd) if (cur == "USD" and eurusd) else (1.0 if cur == "EUR" else None)
+            diff_eur = diff_ccy * to_eur if (diff_ccy is not None and to_eur is not None) else None
         if diff_eur is not None:
             missed += max(diff_eur, 0)
             avoided += max(-diff_eur, 0)
@@ -869,10 +895,10 @@ def exits() -> dict:
         pc = path.iloc[::step]
         rows.append({**base, "symbol": sym, "now": clean(now_px), "until": str(end.date()) if end is not None else None,
                      "rebought_at": clean(later["price"].iloc[0]) if not later.empty else None,
-                     "chg_since": clean((now_px / float(r["price"]) - 1) * 100) if ok else None,
+                     "chg_since": clean(move * 100), "ref_px": clean(ref), "foreign_listing": foreign,
                      "diff_eur": clean(diff_eur), "diff_ccy": clean(diff_ccy),
-                     "best_after": clean((float(path.max()) / float(r["price"]) - 1) * 100) if ok else None,
-                     "worst_after": clean((float(path.min()) / float(r["price"]) - 1) * 100) if ok else None,
+                     "best_after": clean((float(path.max()) / ref - 1) * 100),
+                     "worst_after": clean((float(path.min()) / ref - 1) * 100),
                      "smh_chg": clean(smh_chg), "rule_e_out": e_out,
                      "chart": {"c": [clean(v) for v in pc.values] + [clean(now_px)],
                                "t": [d.strftime("%d %b %y") for d in pc.index] + [path.index[-1].strftime("%d %b %y")]}})
