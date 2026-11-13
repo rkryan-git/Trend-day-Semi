@@ -804,7 +804,7 @@ async function playSwitch() {
     const src = sfxCtx.createBufferSource(), g = sfxCtx.createGain(), t = sfxCtx.currentTime;
     const start = 0.96, len = Math.max(0.1, sfx.duration - start), vol = 0.35;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.03);
-    g.gain.setValueAtTime(vol, t + len - 0.5); g.gain.linearRampToValueAtTime(0, t + len);   // fade over the last 0.5 s
+    g.gain.setValueAtTime(vol, t + len - 0.7); g.gain.linearRampToValueAtTime(0, t + len);   // fade over the last 0.7 s
     src.buffer = sfx; src.connect(g).connect(sfxCtx.destination); src.start(t, start, len);
   } catch (e) { /* sound is optional */ }
 }
