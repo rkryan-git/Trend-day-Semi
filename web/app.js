@@ -708,7 +708,7 @@ function showLong(d) {
 // ------------------------------------------------------------------ Guide
 function renderGuide() {
   const ev = Object.values(SCHEMA.evidence || {});
-  $("#page-guide").innerHTML = head("Guide", "Your day, step by step, in Amsterdam time. What the app tested, what held up and what didn't.") + `<div class="guide">
+  $("#page-guide").innerHTML = head("Guide", "Your day, step by step, in Amsterdam time. What the app tested, what held up and what didn't.") + STORY_HTML + `<div class="guide">
     <div class="table-wrap"><table class="data"><thead><tr><th>When</th><th>Look at</th><th>What to do</th></tr></thead><tbody>
       <tr><td>Before 15:30</td><td>Overnight read and Big-day radar</td><td>Low means probably a normal day: skip CFDs. Elevated or High: be at the screen and think about hedging your holdings. The radar says how big, not which way.</td></tr>
       <tr><td>15:30–15:40</td><td>Watch only</td><td>The biggest candles of the day happen here, and spreads are widest.</td></tr>
@@ -804,7 +804,7 @@ async function playSwitch() {
     const src = sfxCtx.createBufferSource(), g = sfxCtx.createGain(), t = sfxCtx.currentTime;
     const start = 0.96, len = Math.max(0.1, sfx.duration - start), vol = 0.35;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.03);
-    g.gain.setValueAtTime(vol, t + len - 0.12); g.gain.linearRampToValueAtTime(0, t + len);
+    g.gain.setValueAtTime(vol, t + len - 0.2); g.gain.linearRampToValueAtTime(0, t + len);   // fade over the last 0.2 s
     src.buffer = sfx; src.connect(g).connect(sfxCtx.destination); src.start(t, start, len);
   } catch (e) { /* sound is optional */ }
 }

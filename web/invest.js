@@ -106,7 +106,7 @@ function renderInvestResearch() {
 }
 
 function renderInvestGuide() {
-  $("#page-invest-guide").innerHTML = head("Invest guide", "How to read the Invest side, and what it can and can't do.") + `<div class="guide">
+  $("#page-invest-guide").innerHTML = head("Invest guide", "How to read the Invest side, and what it can and can't do.") + STORY_HTML + `<div class="guide">
     <h3>Two accounts, two jobs</h3><ul>
       <li><b>CFD</b> is the day-trading desk: same-day setups, sizing, stops and the 21:30 exit.</li>
       <li><b>Invest</b> is about the stocks you hold for months or years: is the sector in its uptrend or in a cycle low?</li></ul>
