@@ -138,6 +138,9 @@ async def api_push(request):
             return JSONResponse({"key": await run(notify.public_key)})
         if part == "status":
             return JSONResponse(notify.status(request.query_params.get("endpoint", "")))
+        if part == "remind" and request.method == "POST":
+            body = await request.json()
+            return JSONResponse(notify.remind(float(body.get("hours", 48)), float(body.get("amount", 0))))
         if part == "test" and request.method == "POST":
             return JSONResponse(await run(notify.test))
         if part == "subscribe":

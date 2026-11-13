@@ -1,0 +1,78 @@
+{
+ "url": "http://127.0.0.1:8765/",
+ "views": {
+  "mobile": {
+   "width": 390,
+   "height": 844,
+   "navH": 69,
+   "scrollHeight": 11653,
+   "screens": 13.81,
+   "sections": [
+    {
+     "n": 1,
+     "tag": "section",
+     "id": "page-live",
+     "cls": "page",
+     "top": 69,
+     "h": 11394,
+     "hScreens": 13.5,
+     "offGrid": 422,
+     "tiles": [
+      {
+       "file": "mobile-sec-01-a.jpg",
+       "scrollY": 69
+      },
+      {
+       "file": "mobile-sec-01-b.jpg",
+       "scrollY": 913
+      },
+      {
+       "file": "mobile-sec-01-c.jpg",
+       "scrollY": 1757
+      },
+      {
+       "file": "mobile-sec-01-d.jpg",
+       "scrollY": 2601
+      },
+      {
+       "file": "mobile-sec-01-e.jpg",
+       "scrollY": 3445
+      },
+      {
+       "file": "mobile-sec-01-f.jpg",
+       "scrollY": 4289
+      },
+      {
+       "file": "mobile-sec-01-g.jpg",
+       "scrollY": 5133
+      },
+      {
+       "file": "mobile-sec-01-h.jpg",
+       "scrollY": 5977
+      }
+     ]
+    },
+    {
+     "n": 2,
+     "tag": "footer",
+     "id": "",
+     "cls": "wrap foot",
+     "top": 11463,
+     "h": 190,
+     "hScreens": 0.23,
+     "offGrid": 190,
+     "tiles": [
+      {
+       "file": "mobile-sec-02-a.jpg",
+       "scrollY": 10809,
+       "cutTop": 654,
+       "height": 190
+      }
+     ]
+    }
+   ],
+   "consoleErrors": []
+  }
+ },
+ "at": "2026-11-13T18:25:00.807Z"
+}

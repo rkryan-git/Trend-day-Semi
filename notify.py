@@ -210,12 +210,40 @@ def check_exits() -> None:
     send(f"Exits: {head}", "; ".join(parts)[:220] + ". Last 14 days.", "/#invest-exits", f"exits:{day}")
 
 
+def remind(hours: float, amount: float) -> dict:
+    hours = max(1.0, min(float(hours), 24 * 14))
+    at = (datetime.now(NY) + __import__("datetime").timedelta(hours=hours)).isoformat()
+    st = _read(STATE_FILE, {})
+    st.setdefault("reminders", []).append({"at": at, "amount": round(float(amount), 2)})
+    _write(STATE_FILE, st)
+    return {"ok": True, "at": at}
+
+
+def check_reminders() -> None:
+    st = _read(STATE_FILE, {})
+    due, keep = [], []
+    for r in st.get("reminders", []):
+        (due if datetime.fromisoformat(r["at"]) <= datetime.now(NY) else keep).append(r)
+    if not due:
+        return
+    for r in due:
+        send("48 hours later: still want to take it out?",
+             f"You paused on taking out €{r['amount']:,.0f}. If you still need it, go ahead. If the urge has passed, it stays invested.",
+             "/#invest-exits", f"remind:{r['at']}")
+    st["reminders"] = keep
+    _write(STATE_FILE, st)
+
+
 async def loop() -> None:
     """Every minute in US trading hours, every 15 minutes otherwise; rule E once after the close."""
     await asyncio.sleep(20)
     while True:
         ny = datetime.now(NY)
         open_hours = ny.weekday() < 5 and (9, 25) <= (ny.hour, ny.minute) <= (16, 5)
+        try:
+            await asyncio.to_thread(check_reminders)
+        except Exception as e:
+            print(f"[push] reminder check failed: {str(e)[:160]}")
         try:
             await asyncio.to_thread(check_live)
         except Exception as e:

@@ -46,7 +46,7 @@ async function renderExits(msg = "") {
         <div class="inv-px"><span class="px">${fmt(s.now)} <span class="muted" style="font-size:13px">${esc(s.currency)}</span></span>
           <span class="muted">sold ${fmt(s.price)} on ${esc(s.time.slice(0, 11))}</span></div>
         ${exitChart(s.chart, s.ref_px || s.price)}
-        <div class="chips"><span class="chip">since you sold ${pct(s.chg_since, 1)}</span><span class="chip">best after ${pct(s.best_after, 0)}</span>
+        <div class="chips">${s.spent_eur ? `<span class="chip chip-spent">Spent €${Math.round(s.spent_eur).toLocaleString("en-US")}</span>` : ""}<span class="chip">since you sold ${pct(s.chg_since, 1)}</span><span class="chip">best after ${pct(s.best_after, 0)}</span>
           <span class="chip">worst after ${pct(s.worst_after, 0)}</span>${isNum(s.smh_chg) ? `<span class="chip">SMH same period ${pct(s.smh_chg, 1)}</span>` : ""}</div>
         <p class="sub" style="font-size:12px">${s.foreign_listing ? `Price data from ${esc(s.symbol)} (another listing), measured from its close on the day you sold. ` : ""}${s.until ? `Followed until you bought back on ${esc(s.until)} at ${fmt(s.rebought_at)}. ` : ""}${s.rule_e_out === true ? "Rule E agreed with this sell: the stock and SMH were both below their 200-day average." : s.rule_e_out === false ? "Rule E would have kept holding." : ""}</p>
       </article>`).join("");
@@ -57,6 +57,7 @@ async function renderExits(msg = "") {
         <p class="hero-sub">Missed by selling: ${eurS(d.missed_eur)} · avoided by selling: ${eurS(d.avoided_eur).replace("+", "")}. ${d.e_known ? `Rule E agreed with ${d.e_agreed} of ${d.e_known} sells.` : ""}</p>
         <p class="sub" style="margin-top:10px;font-size:13px">Fair warning: this follows the stock only, not what you did with the cash. If you put the money into something else, that part isn't counted. A buy-back ends the comparison.</p>
         <div class="form-row" style="margin-top:20px">${upload}</div><p class="toast" id="exitsMsg" aria-live="polite">${msg}</p></div></section>
+      ${spendHTML(d)}
       ${flowsHTML(d)}
       <section class="section"><div class="section-head"><h2 class="h-section">Every sell</h2><p class="prose">Newest first. Each card follows the stock from the moment you sold, until today or until you bought it back.</p></div>
         <div class="inv-grid">${cards || '<p class="empty">No sells in this export.</p>'}</div></section>`;
@@ -107,4 +108,58 @@ document.addEventListener("submit", (e) => {
   const v = Number(new FormData(e.target).get("bal"));
   try { if (isFinite(v) && v >= 0) localStorage.setItem("stdr.cfdBalance", String(v)); } catch (er) { /* ignore */ }
   renderExits("CFD balance updated.");
+});
+
+// ---------------------------------------------------------------- spending: money sent to your bank
+const FV_RATE = 0.07, FV_YEARS = 10;           // illustration only: a long-run stock-market average, not a promise
+function monthlyPay() { try { const v = Number(localStorage.getItem("stdr.pay")); return v > 0 ? v : null; } catch (e) { return null; } }
+const eur0 = (x) => "€" + Math.round(Math.abs(x)).toLocaleString("en-US");
+const hoursOf = (x, pay) => (pay ? Math.round(x / (pay / 173)) : null);      // 173 = average working hours a month at 40 h/week
+const future = (x) => x * Math.pow(1 + FV_RATE, FV_YEARS);
+function nudgeLine(x, pay) {
+  const h = hoursOf(x, pay);
+  return `${h !== null ? `about <b>${h.toLocaleString("en-US")} hours</b> of your work · ` : ""}left invested, around <b>${eur0(future(x))}</b> in ${FV_YEARS} years`;
+}
+function spendHTML(d) {
+  const sp = d.spending;
+  if (!sp || !sp.to_bank_count) return "";
+  const pay = monthlyPay(), mx = Math.max(...sp.monthly.map((m) => m.eur), 1);
+  const bars = sp.monthly.map((m) => `<div class="sp-bar" title="${esc(m.month)}: ${eur0(m.eur)}"><i style="height:${Math.max(3, (m.eur / mx) * 100)}%"></i>
+    <span>${new Date(m.month + "-01").toLocaleDateString("en-GB", { month: "short" })}</span></div>`).join("");
+  return `<section class="section" aria-labelledby="spend-h"><div class="section-head"><h2 class="h-section" id="spend-h">Taken out to spend</h2>
+    <p class="prose">Money sent from Invest to your bank. A sell followed by a bank transfer within ${sp.days} days is marked <b>Spent</b>: that's a spending sale, not panic. The app can't see what the money was for; if some of it went to savings, it's still out of the market.</p></div>
+    <div class="bento">
+      <div class="glass block span-6"><span class="label">This year</span><span class="big">${eur0(sp.to_bank_year_eur)}</span>
+        <p class="sub">${sp.to_bank_count} transfers to your bank. ${eur0(sp.from_sells_eur)} of it came straight from selling stocks (${sp.sells_spent} sells).</p>
+        <p class="sub" style="margin-top:8px">That's ${nudgeLine(sp.to_bank_year_eur, pay)}.</p>
+        <div class="sp-bars" aria-hidden="true">${bars}</div></div>
+      <div class="glass block span-6"><span class="label">Thinking of taking money out?</span>
+        <form class="form-row" id="spendForm" style="margin-top:6px">
+          <label class="field" style="min-width:130px"><span class="muted" style="font-size:12px">Amount (€)</span>
+            <input class="input" name="amt" type="number" min="1" step="1" inputmode="decimal" placeholder="300" required></label>
+          <label class="field" style="min-width:150px"><span class="muted" style="font-size:12px">Your monthly pay (€)</span>
+            <input class="input" name="pay" type="number" min="1" step="1" inputmode="decimal" value="${pay || ""}" placeholder="take-home"></label>
+          <button class="btn btn-ghost btn-sm" type="submit">Show me</button></form>
+        <div id="spendOut" aria-live="polite"></div>
+        <p class="sub" style="font-size:12px;margin-top:8px">Pay stays in this browser only. The ${FV_YEARS}-year figure assumes ${FV_RATE * 100}% a year, a long-run stock average: an illustration, not a promise.</p></div>
+    </div></section>`;
+}
+document.addEventListener("submit", (e) => {
+  if (e.target.id !== "spendForm") return;
+  e.preventDefault();
+  const f = new FormData(e.target), amt = Number(f.get("amt")), pay = Number(f.get("pay"));
+  try { if (pay > 0) localStorage.setItem("stdr.pay", String(pay)); } catch (er) { /* ignore */ }
+  if (!(amt > 0)) return;
+  $("#spendOut").innerHTML = `<p style="margin:12px 0 6px;font-size:15px">${eur0(amt)} is ${nudgeLine(amt, pay > 0 ? pay : null)}.</p>
+    <p class="sub">Most urges to spend fade within a couple of days. If you still need it in 48 hours, take it out then: no guilt.</p>
+    <div class="form-row" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="button" id="remind48" data-amt="${amt}">Remind me in 48 hours</button></div>
+    <p class="toast" id="remindMsg" aria-live="polite"></p>`;
+});
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("#remind48");
+  if (!b) return;
+  try {
+    await api("/api/push/remind", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hours: 48, amount: Number(b.dataset.amt) }) });
+    $("#remindMsg").textContent = "Done. You'll get a notification in 48 hours (turn notifications on in Settings if you haven't).";
+  } catch (er) { $("#remindMsg").innerHTML = `<span class="err">${esc(er.message)}</span>`; }
 });

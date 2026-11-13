@@ -815,6 +815,41 @@ def cashflow_t212(text: str) -> dict:
             "net_to_cfd": round(total["to_cfd"] - total["from_cfd"], 2)}
 
 
+SPEND_DAYS = 7          # a sell followed by money sent to your bank within this many days counts as spending
+
+
+def bank_withdrawals(text: str) -> list:
+    """Withdrawals to a bank account (they carry a 'Sent to Bank Account' note). Amounts only, never the account."""
+    from io import StringIO
+    df = pd.read_csv(StringIO(text), dtype=str)
+    a, t, n = _col(df, "action"), _col(df, "time"), _col(df, "notes")
+    tot = _col(df, "total") or _col(df, "gross total")
+    if a is None or t is None or n is None or tot is None:
+        return []
+    w = df[(df[a] == "Withdrawal") & df[n].fillna("").str.contains("bank", case=False)]
+    tm = pd.to_datetime(w[t], errors="coerce", utc=True).dt.tz_convert("Europe/Amsterdam").dt.tz_localize(None)
+    amt = pd.to_numeric(w[tot], errors="coerce").abs()
+    return sorted([(x, float(v)) for x, v in zip(tm, amt) if pd.notna(x) and pd.notna(v) and v > 0])
+
+
+def spent_from_sells(sells: pd.DataFrame, bank: list) -> dict:
+    """Give each bank withdrawal to the most recent sells before it (within SPEND_DAYS), newest first,
+    up to what those sells brought in. Returns {sell row index: euros of it that went to your bank}."""
+    left = {i: abs(float(r["total_eur"])) if pd.notna(r["total_eur"]) else 0.0 for i, r in sells.iterrows()}
+    spent = {}
+    for when, amount in bank:
+        win = sells[(sells["time"] <= when) & (sells["time"] >= when - pd.Timedelta(days=SPEND_DAYS))].sort_values("time", ascending=False)
+        for i, _ in win.iterrows():
+            if amount <= 0:
+                break
+            take = min(left[i], amount)
+            if take > 0:
+                spent[i] = spent.get(i, 0.0) + take
+                left[i] -= take
+                amount -= take
+    return spent
+
+
 def _yahoo_symbols(ticker: str, currency: str, isin: str = "") -> list:
     t = str(ticker).upper().replace(" ", "").replace("/", "-")
     cur = str(currency).upper()
@@ -871,12 +906,15 @@ def exits() -> dict:
     smh, fx = closes("SMH"), closes("EURUSD=X")
     eurusd = float(fx.iloc[-1]) if fx is not None and len(fx) else None
     smh_ma = smh.rolling(200).mean() if smh is not None else None
+    bank = bank_withdrawals(raw_text)
+    spent = spent_from_sells(sells, bank)
     rows, missed, avoided = [], 0.0, 0.0
-    for _, r in sells.iterrows():
+    for idx, r in sells.iterrows():
         sym = next((c for c in cand[r["ticker"]] if closes(c) is not None), None)
         base = {"ticker": r["ticker"], "name": r["name"], "date": str(r["time"].date()), "time": r["time"].strftime("%d %b %Y %H:%M"),
                 "shares": clean(r["shares"]), "price": clean(r["price"]), "currency": r["currency"],
-                "proceeds_eur": clean(r["total_eur"]), "realised_eur": clean(r["result_eur"])}
+                "proceeds_eur": clean(r["total_eur"]), "realised_eur": clean(r["result_eur"]),
+                "spent_eur": clean(round(spent.get(idx, 0.0), 2)) if spent.get(idx) else None}
         if sym is None:
             rows.append({**base, "error": "No price history found for this ticker."})
             continue
@@ -933,7 +971,15 @@ def exits() -> dict:
                      "smh_chg": clean(smh_chg), "rule_e_out": e_out,
                      "chart": {"c": [clean(v) for v in pc.values] + [clean(now_px)],
                                "t": [d.strftime("%d %b %y") for d in pc.index] + [path.index[-1].strftime("%d %b %y")]}})
-    return {"empty": False, "sells": rows[::-1], "flows": flows, "missed_eur": round(missed, 2), "avoided_eur": round(avoided, 2),
+    yr = str(datetime.now(AMS).year)
+    spending = {"to_bank_eur": round(sum(v for _, v in bank), 2), "to_bank_count": len(bank),
+                "to_bank_year_eur": round(sum(v for t, v in bank if str(t.year) == yr), 2),
+                "from_sells_eur": round(sum(spent.values()), 2), "sells_spent": len(spent), "days": SPEND_DAYS,
+                "monthly": [{"month": k, "eur": round(v, 2)} for k, v in
+                            pd.Series({t.strftime("%Y-%m"): 0.0 for t, _ in bank}).add(
+                                pd.Series([v for _, v in bank], index=[t.strftime("%Y-%m") for t, _ in bank]).groupby(level=0).sum(),
+                                fill_value=0).sort_index().items()]}
+    return {"empty": False, "sells": rows[::-1], "flows": flows, "spending": spending, "missed_eur": round(missed, 2), "avoided_eur": round(avoided, 2),
             "net_eur": round(missed - avoided, 2), "eurusd": clean(eurusd), "count": len(rows),
             "e_agreed": sum(1 for x in rows if x.get("rule_e_out") is True),
             "e_known": sum(1 for x in rows if x.get("rule_e_out") is not None)}

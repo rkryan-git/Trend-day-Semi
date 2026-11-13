@@ -1,0 +1,74 @@
+{
+ "url": "http://127.0.0.1:8765/",
+ "views": {
+  "desktop": {
+   "width": 1440,
+   "height": 900,
+   "navH": 69,
+   "scrollHeight": 5898,
+   "screens": 6.55,
+   "sections": [
+    {
+     "n": 1,
+     "tag": "section",
+     "id": "page-live",
+     "cls": "page",
+     "top": 69,
+     "h": 5658,
+     "hScreens": 6.29,
+     "offGrid": 258,
+     "tiles": [
+      {
+       "file": "desktop-sec-01-a.jpg",
+       "scrollY": 69
+      },
+      {
+       "file": "desktop-sec-01-b.jpg",
+       "scrollY": 969
+      },
+      {
+       "file": "desktop-sec-01-c.jpg",
+       "scrollY": 1869
+      },
+      {
+       "file": "desktop-sec-01-d.jpg",
+       "scrollY": 2769
+      },
+      {
+       "file": "desktop-sec-01-e.jpg",
+       "scrollY": 3669
+      },
+      {
+       "file": "desktop-sec-01-f.jpg",
+       "scrollY": 4569
+      },
+      {
+       "file": "desktop-sec-01-g.jpg",
+       "scrollY": 4827
+      }
+     ]
+    },
+    {
+     "n": 2,
+     "tag": "footer",
+     "id": "",
+     "cls": "wrap foot",
+     "top": 5727,
+     "h": 171,
+     "hScreens": 0.19,
+     "offGrid": 171,
+     "tiles": [
+      {
+       "file": "desktop-sec-02-a.jpg",
+       "scrollY": 4998,
+       "cutTop": 729,
+       "height": 171
+      }
+     ]
+    }
+   ],
+   "consoleErrors": []
+  }
+ },
+ "at": "2026-11-13T18:22:35.824Z"
+}

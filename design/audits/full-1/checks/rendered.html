@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-theme-choice="system"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semi Trend-Day Radar</title>
+<meta name="description" content="Live decision desk for MU, SNDK, WDC, LRCX, AMAT, ASML and AMD: big-day radar, two tested setups, sizing and a signal log.">
+<link rel="icon" href="/web/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/web/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin="">
+<script>
+  /* theme before first paint: system unless the user picked one */
+  (function () {
+    try {
+      var t = localStorage.getItem("stdr.theme") || "system";
+      var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+      document.documentElement.dataset.themeChoice = t;
+    } catch (e) { document.documentElement.dataset.theme = "dark"; }
+  })();
+</script>
+<link rel="stylesheet" href="/web/app.css?v=7">
+<link rel="stylesheet" href="/web/glass.css?v=10">
+</head>
+<body class="settled"><div id="lg-defs" aria-hidden="true" style="position: absolute; width: 0px; height: 0px; overflow: hidden;"><svg width="0" height="0"><defs><filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22l%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(0%2C128%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22r%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(255%2C128%2C128)%22%2F%3E%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22t%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(128%2C0%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22b%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(128%2C255%2C128)%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%0A%20%20%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22rgb(128%2C128%2C128)%22%2F%3E%0A%20%20%20%20%3Crect%20width%3D%229%22%20height%3D%22100%22%20fill%3D%22url(%23l)%22%2F%3E%3Crect%20x%3D%2291%22%20width%3D%229%22%20height%3D%22100%22%20fill%3D%22url(%23r)%22%2F%3E%0A%20%20%20%20%3Crect%20width%3D%22100%22%20height%3D%229%22%20fill%3D%22url(%23t)%22%2F%3E%3Crect%20y%3D%2291%22%20width%3D%22100%22%20height%3D%229%22%20fill%3D%22url(%23b)%22%2F%3E%3C%2Fsvg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map"></feImage>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="26" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter><filter id="lg-refract-strong" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22l%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(0%2C128%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22r%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(255%2C128%2C128)%22%2F%3E%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22t%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(128%2C0%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22b%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22rgb(128%2C128%2C128)%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22rgb(128%2C255%2C128)%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%0A%20%20%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22rgb(128%2C128%2C128)%22%2F%3E%0A%20%20%20%20%3Crect%20width%3D%229%22%20height%3D%22100%22%20fill%3D%22url(%23l)%22%2F%3E%3Crect%20x%3D%2291%22%20width%3D%229%22%20height%3D%22100%22%20fill%3D%22url(%23r)%22%2F%3E%0A%20%20%20%20%3Crect%20width%3D%22100%22%20height%3D%229%22%20fill%3D%22url(%23t)%22%2F%3E%3Crect%20y%3D%2291%22%20width%3D%22100%22%20height%3D%229%22%20fill%3D%22url(%23b)%22%2F%3E%3C%2Fsvg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map"></feImage>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="40" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></defs></svg></div>
+<div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#live" aria-label="Semi Trend-Day Radar, Live">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18a9 9 0 0 1 18 0"></path><path d="M7.5 18a4.5 4.5 0 0 1 9 0"></path><circle cx="12" cy="18" r="1.6"></circle></svg>
+      <span class="brand-name">Semi Trend-Day Radar</span>
+    </a>
+    <nav class="tabs" aria-label="Sections"><span class="tab-pill" aria-hidden="true" style="left: 0px; width: 52px;"></span>
+      <a href="#live" data-tab="live" aria-current="page">Live</a>
+      <a href="#log" data-tab="log">Signal log</a>
+      <a href="#spread" data-tab="spread">Spread log</a>
+      <a href="#backtest" data-tab="backtest">Backtest</a>
+      <a href="#long" data-tab="long">2-year check</a>
+      <a href="#guide" data-tab="guide">Guide</a>
+    </nav>
+    <div class="nav-tools">
+      <span class="status" id="status" aria-live="polite" data-phase="open"><i class="dot"></i><span>US market open · 19:26</span></span>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme: system. Change theme" title="Theme: system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"></path></svg></button>
+      <button class="btn btn-primary btn-sm" id="settingsBtn" type="button">Settings</button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="page" id="page-live" data-page="live"><section class="hero" data-tone="loss" aria-labelledby="decision">
+    <div class="glass hero-card reveal in" style="--d:0ms">
+      <div class="hero-meta"><span class="label">Fri 13 Nov</span><span class="label">US market open</span><span class="label">Updated 19:26:05</span></div>
+      <h1 class="h-display" id="decision"><span class="tone" aria-hidden="true"></span>Longs blocked</h1>
+      <p class="hero-sub">SMH and QQQ must both be above today's open and VWAP before a long counts.</p>
+    </div></section><div class="bento" style="margin-top:16px"><div class="glass block lift breaking"><span class="label caution">Breaking · high impact</span>
+      <a class="big news-hl" href="https://www.benzinga.com/markets/tech/26/11/63258750/nvidia-courting-a-former-insider-arm-ceo-rene-haas" target="_blank" rel="noopener">Nvidia Courting a Former Insider: Arm CEO Rene Haas</a>
+        <p class="sub">19:19 · 5 min ago · AMD, NVDA, TSM · benzinga</p><a class="big news-hl" href="https://www.benzinga.com/news/26/11/63253422/arm-boss-rene-haas-approached-nvidia-ceo-search-financial-times" target="_blank" rel="noopener">'Arm boss Rene Haas approached in Nvidia CEO search'- Financial Times</a>
+        <p class="sub">17:56 · 1 h 28 min ago · NVDA · benzinga</p><a class="big news-hl" href="https://www.benzinga.com/trading-ideas/movers/26/11/63249030/super-micro-extends-doj-probe-selloff-as-nvidia-nasdaq-slide" target="_blank" rel="noopener">Super Micro Extends DOJ-Probe Selloff as Nvidia, Nasdaq Slide</a>
+        <p class="sub">17:08 · 2 h 17 min ago · AMD, NVDA · benzinga</p></div><div class="glass block lift span-6 reveal in" style="--d:120ms"><span class="label">Market filter</span>
+      <span class="big loss">Longs blocked</span>
+      <p class="sub">SMH −3.59% (below VWAP), QQQ −1.40% (below VWAP) since the open.</p></div></div><div class="disclose"><button type="button" aria-expanded="false" aria-controls="why-open" data-disclose="">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>Why: SMH, QQQ and your stocks since the open</button>
+    <div class="disclose-body" id="why-open" hidden=""><div class="table-wrap"><table class="data"><thead><tr><th scope="col" class="">Ticker</th><th scope="col" class="n">Last</th><th scope="col" class="n">Since open %</th><th scope="col" class="n">Last 10 min %</th><th scope="col" class="n">vs VWAP %</th><th scope="col" class="">Climb needed for filter</th></tr></thead><tbody><tr><td>SMH</td><td class="n">482.01</td><td class="n"><span class="loss">−3.46</span></td><td class="n"><span class="gain">+0.12</span></td><td class="n"><span class="gain">+0.04</span></td><td>+3.58% (to 499.26)</td></tr><tr><td>QQQ</td><td class="n">677.20</td><td class="n"><span class="loss">−1.32</span></td><td class="n"><span class="gain">+0.08</span></td><td class="n"><span class="loss">−0.10</span></td><td>+1.34% (to 686.25)</td></tr><tr><td>MU</td><td class="n">762.20</td><td class="n"><span class="loss">−2.61</span></td><td class="n"><span class="gain">+0.11</span></td><td class="n"><span class="loss">−0.84</span></td><td>—</td></tr><tr><td>SNDK</td><td class="n">863.34</td><td class="n"><span class="loss">−5.73</span></td><td class="n"><span class="gain">+0.27</span></td><td class="n"><span class="loss">−1.71</span></td><td>—</td></tr><tr><td>WDC</td><td class="n">292.03</td><td class="n"><span class="loss">−4.29</span></td><td class="n"><span class="gain">+0.23</span></td><td class="n"><span class="loss">−0.56</span></td><td>—</td></tr><tr><td>LRCX</td><td class="n">224.29</td><td class="n"><span class="loss">−2.30</span></td><td class="n"><span class="gain">+0.21</span></td><td class="n"><span class="gain">+0.04</span></td><td>—</td></tr><tr><td>AMAT</td><td class="n">363.04</td><td class="n"><span class="loss">−3.55</span></td><td class="n"><span class="gain">+0.24</span></td><td class="n"><span class="loss">−0.48</span></td><td>—</td></tr><tr><td>ASML</td><td class="n">1,480.22</td><td class="n"><span class="loss">−0.53</span></td><td class="n"><span class="gain">+0.13</span></td><td class="n"><span class="gain">+0.02</span></td><td>—</td></tr><tr><td>AMD</td><td class="n">524.17</td><td class="n"><span class="loss">−7.23</span></td><td class="n"><span class="gain">+0.17</span></td><td class="n"><span class="loss">−2.28</span></td><td>—</td></tr></tbody></table></div><p class="prose">Versus yesterday's close: SMH <span class="num loss">−3.99%</span>, QQQ <span class="num loss">−1.59%</span>. The filter looks at the move since the 15:30 open, not the day.</p><p class="prose">Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.</p></div></div><section class="section" aria-labelledby="h-news">
+    <div class="section-head"><h2 class="h-section reveal in" style="--d:180ms" id="h-news">News radar</h2>
+      <p class="prose reveal in" style="--d:240ms">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Sorted by impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
+    <div class="glass news-list reveal in" style="--d:300ms"><a class="news-row imp-normal" href="https://www.benzinga.com/trading-ideas/movers/26/11/63258769/why-is-iren-stock-falling-on-friday-3" target="_blank" rel="noopener">
+        <span class="label">19:19</span>
+        <span class="imp"></span>
+        <span class="hl">Why Is IREN Stock Falling on Friday?</span>
+        <span class="syms"><span class="chip">NVDA</span><span class="chip">QQQ</span></span></a><a class="news-row imp-high" href="https://www.benzinga.com/markets/tech/26/11/63258750/nvidia-courting-a-former-insider-arm-ceo-rene-haas" target="_blank" rel="noopener">
+        <span class="label">19:19</span>
+        <span class="imp">High</span>
+        <span class="hl">Nvidia Courting a Former Insider: Arm CEO Rene Haas</span>
+        <span class="syms"><span class="chip">AMD</span><span class="chip">NVDA</span><span class="chip">TSM</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/markets/prediction-markets/26/11/63257278/bessent-lutnick-feud" target="_blank" rel="noopener">
+        <span class="label">18:53</span>
+        <span class="imp"></span>
+        <span class="hl">Bessent Points Finger at Lutnick as White House Feud Over Nvidia Erupts</span>
+        <span class="syms"><span class="chip">NVDA</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/markets/tech/26/11/63256679/what-is-going-on-with-sandisk-stock-on-friday" target="_blank" rel="noopener">
+        <span class="label">18:44</span>
+        <span class="imp"></span>
+        <span class="hl">What Is Going on With SanDisk Stock on Friday?</span>
+        <span class="syms"><span class="chip">MU</span><span class="chip">NVDA</span><span class="chip">SMH</span><span class="chip">SNDK</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/analyst-stock-ratings/analyst-color/26/11/63256318/analyst-shrugs-off-nebius-data-center-delay-as-slight-blemish-on-strong-quarter" target="_blank" rel="noopener">
+        <span class="label">18:36</span>
+        <span class="imp"></span>
+        <span class="hl">Analyst Shrugs Off Nebius Data Center Delay As 'Slight Blemish' on Strong Quarter</span>
+        <span class="syms"><span class="chip">NVDA</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/markets/options/26/11/63256170/10-information-technology-stocks-whale-activity-today-s-session" target="_blank" rel="noopener">
+        <span class="label">18:35</span>
+        <span class="imp"></span>
+        <span class="hl">10 Information Technology Stocks Whale Activity In Today’s Session</span>
+        <span class="syms"><span class="chip">NVDA</span><span class="chip">SNDK</span></span></a><a class="news-row imp-medium" href="https://www.benzinga.com/news/26/11/63253947/these-applied-materials-analysts-slash-price-targets-despite-strong-q3-raised-fy-outlook-on-30-wfe-growth" target="_blank" rel="noopener">
+        <span class="label">18:03</span>
+        <span class="imp">Medium</span>
+        <span class="hl">These Applied Materials Analysts Slash Price Targets Despite Strong Q3, Raised FY Outlook on &gt;30% WFE Growth</span>
+        <span class="syms"><span class="chip">AMAT</span></span></a><a class="news-row imp-medium" href="https://www.benzinga.com/news/26/11/63253882/mizuho-maintains-outperform-applied-materials-lowers-price-target-510" target="_blank" rel="noopener">
+        <span class="label">18:02</span>
+        <span class="imp">Medium</span>
+        <span class="hl">Mizuho Maintains Outperform on Applied Materials, Lowers Price Target to $510</span>
+        <span class="syms"><span class="chip">AMAT</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/markets/tech/26/11/63253675/whats-going-on-with-lam-research-stock-friday-2" target="_blank" rel="noopener">
+        <span class="label">17:59</span>
+        <span class="imp"></span>
+        <span class="hl">What's Going On With Lam Research Stock Friday?</span>
+        <span class="syms"><span class="chip">AMAT</span><span class="chip">LRCX</span><span class="chip">NVDA</span></span></a><a class="news-row imp-high" href="https://www.benzinga.com/news/26/11/63253422/arm-boss-rene-haas-approached-nvidia-ceo-search-financial-times" target="_blank" rel="noopener">
+        <span class="label">17:56</span>
+        <span class="imp">High</span>
+        <span class="hl">'Arm boss Rene Haas approached in Nvidia CEO search'- Financial Times</span>
+        <span class="syms"><span class="chip">NVDA</span></span></a><a class="news-row imp-medium" href="https://www.benzinga.com/news/26/11/63253023/ubs-maintains-buy-applied-materials-lowers-price-target-640" target="_blank" rel="noopener">
+        <span class="label">17:51</span>
+        <span class="imp">Medium</span>
+        <span class="hl">UBS Maintains Buy on Applied Materials, Lowers Price Target to $640</span>
+        <span class="syms"><span class="chip">AMAT</span></span></a><a class="news-row imp-medium" href="https://www.benzinga.com/news/26/11/63251993/wells-fargo-maintains-overweight-applied-materials-lowers-price-target-500" target="_blank" rel="noopener">
+        <span class="label">17:39</span>
+        <span class="imp">Medium</span>
+        <span class="hl">Wells Fargo Maintains Overweight on Applied Materials, Lowers Price Target to $500</span>
+        <span class="syms"><span class="chip">AMAT</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/opinion/26/11/63250990/amd-benefits-from-nvidias-troubles-smart-money-sells-nvidia-cooler-ppi-bitcoin-below-70k" target="_blank" rel="noopener">
+        <span class="label">17:28</span>
+        <span class="imp"></span>
+        <span class="hl">AMD Benefits From Nvidia's Troubles, Smart Money Sells Nvidia; Cooler PPI; Bitcoin Below $70K</span>
+        <span class="syms"><span class="chip">AMD</span><span class="chip">NVDA</span><span class="chip">QQQ</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/trading-ideas/movers/26/11/63250819/why-is-applied-digital-stock-falling-on-friday" target="_blank" rel="noopener">
+        <span class="label">17:26</span>
+        <span class="imp"></span>
+        <span class="hl">Why Is Applied Digital Stock Falling on Friday?</span>
+        <span class="syms"><span class="chip">NVDA</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/markets/tech/26/11/63249664/michael-burry-says-wsj-missed-the-real-nvidia-story" target="_blank" rel="noopener">
+        <span class="label">17:14</span>
+        <span class="imp"></span>
+        <span class="hl">Michael Burry Says WSJ Missed the Real Nvidia Story</span>
+        <span class="syms"><span class="chip">NVDA</span><span class="chip">QQQ</span><span class="chip">SMH</span></span></a><a class="news-row imp-high" href="https://www.benzinga.com/trading-ideas/movers/26/11/63249030/super-micro-extends-doj-probe-selloff-as-nvidia-nasdaq-slide" target="_blank" rel="noopener">
+        <span class="label">17:08</span>
+        <span class="imp">High</span>
+        <span class="hl">Super Micro Extends DOJ-Probe Selloff as Nvidia, Nasdaq Slide</span>
+        <span class="syms"><span class="chip">AMD</span><span class="chip">NVDA</span></span></a><a class="news-row imp-high" href="https://www.marketscreener.com/news/nvidia-draws-scrutiny-from-3-us-justice-department-probes-ce785ed9df8df320" target="_blank" rel="noopener">
+        <span class="label">17:02</span>
+        <span class="imp">High</span>
+        <span class="hl">NVIDIA Faces Multiple US Department of Justice Probes</span>
+        <span class="syms"><span class="chip">NVDA</span></span></a><a class="news-row imp-normal" href="https://www.benzinga.com/etfs/sector-etfs/26/11/63248349/consumer-staples-leads-sectors-as-technology-trails" target="_blank" rel="noopener">
+        <span class="label">17:00</span>
+        <span class="imp"></span>
+        <span class="hl">Consumer Staples Leads Sectors As Technology Trails</span>
+        <span class="syms"><span class="chip">NVDA</span><span class="chip">QQQ</span></span></a></div></section><section class="section" aria-labelledby="h-radar">
+    <div class="section-head"><h2 class="h-section reveal in" style="--d:360ms" id="h-radar">Big-day radar</h2>
+      <p class="prose reveal in" style="--d:420ms">How likely a ±7% day is for each stock, from the warnings that came before past big days (SNDK/MU/WDC, Nov 2024 to Nov 2026). It says how big the day may get, not which way. Pick a stock to see why.</p></div>
+    <div class="glass radar-feature reveal in" style="--d:480ms" id="radarFeature"><div><svg class="gauge" id="gFeature" viewBox="0 0 300 168" role="img" aria-label="Chance of a 7 percent day: 34 percent">
+    <path class="track" d="M32.0,150.0 A118,118 0 0 1 268.0,150.0" stroke-width="18" fill="none"></path>
+    <path class="fill hot" d="M32.0,150.0 A118,118 0 0 1 268.0,150.0" stroke-width="18" fill="none" pathLength="100" stroke-dasharray="100" data-target="43.83" style="stroke-dashoffset: 43.83;"></path>
+    <line class="tick" x1="46.1" y1="120.4" x2="26.9" y2="114.9"></line>
+      <text class="tick-lbl" x="14.4" y="111.4" text-anchor="middle" dominant-baseline="middle">5.3</text><line class="tick" x1="70.1" y1="77.3" x2="55.3" y2="63.9"></line>
+      <text class="tick-lbl" x="45.7" y="55.1" text-anchor="middle" dominant-baseline="middle">14.1</text><line class="tick" x1="108.7" y1="50.2" x2="101.0" y2="31.7"></line>
+      <text class="tick-lbl" x="96.0" y="19.7" text-anchor="middle" dominant-baseline="middle">22.5</text><line class="tick" x1="247.7" y1="104.0" x2="265.8" y2="95.5"></line>
+      <text class="tick-lbl" x="277.6" y="90.0" text-anchor="middle" dominant-baseline="middle">51.6</text></svg><div class="g-num" id="gNum">34%</div></div>
+    <div class="g-meta">
+      <span class="label">Chance of a ±7% day</span>
+      <h3 class="g-name" id="gName">AMD</h3>
+      <div id="gLevel"><span class="status-tag caution" style="color:var(--caution)"><i></i>High</span></div>
+      <div class="chips" id="gChips"><span class="chip">Gap −3.5%</span><span class="chip">Volatility rising 1.50×</span><span class="chip">Yesterday +5.9%</span></div>
+      <p class="warn" id="gWarn">volatility rising (1.50× normal) · gap −3.5%</p>
+      <p class="gauge-key">Marks on the dial: 5.3% with no warning · 14.1% on all days · 22.5% with any warning · 51.6% after a 5%+ gap.</p>
+    </div></div>
+    <div class="radar-grid" role="group" aria-label="Stocks on your watchlist">
+      <button type="button" class="glass lift stock-card reveal in" style="--d:540ms" data-radar="MU" aria-pressed="false">
+          <span class="row1"><span class="tick-name">MU</span><span class="level-Elevated" style="font-size:12px">Elevated</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 21 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill hot" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="65.83" style="stroke-dashoffset: 65.83;"></path>
+    </svg><span class="mini-num">21%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −2.0%</span></button><button type="button" class="glass lift stock-card reveal in" style="--d:600ms" data-radar="SNDK" aria-pressed="false">
+          <span class="row1"><span class="tick-name">SNDK</span><span class="level-Elevated" style="font-size:12px">Elevated</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 21 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill hot" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="65.83" style="stroke-dashoffset: 65.83;"></path>
+    </svg><span class="mini-num">21%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −2.3%</span></button><button type="button" class="glass lift stock-card reveal in" style="--d:600ms" data-radar="WDC" aria-pressed="false">
+          <span class="row1"><span class="tick-name">WDC</span><span class="level-Elevated" style="font-size:12px">Elevated</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 21 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill hot" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="65.83" style="stroke-dashoffset: 65.83;"></path>
+    </svg><span class="mini-num">21%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −2.0%</span></button><button type="button" class="glass lift stock-card reveal in" style="--d:600ms" data-radar="LRCX" aria-pressed="false">
+          <span class="row1"><span class="tick-name">LRCX</span><span class="level-Low" style="font-size:12px">Low</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 5 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="91.17" style="stroke-dashoffset: 91.17;"></path>
+    </svg><span class="mini-num">5%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −1.8%</span></button><button type="button" class="glass lift stock-card reveal in" style="--d:600ms" data-radar="AMAT" aria-pressed="false">
+          <span class="row1"><span class="tick-name">AMAT</span><span class="level-Low" style="font-size:12px">Low</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 5 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="91.17" style="stroke-dashoffset: 91.17;"></path>
+    </svg><span class="mini-num">5%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −1.3%</span></button><button type="button" class="glass lift stock-card reveal in" style="--d:600ms" data-radar="ASML" aria-pressed="false">
+          <span class="row1"><span class="tick-name">ASML</span><span class="level-Low" style="font-size:12px">Low</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 5 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="91.17" style="stroke-dashoffset: 91.17;"></path>
+    </svg><span class="mini-num">5%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −0.6%</span></button><button type="button" class="glass lift stock-card reveal in" style="--d:600ms" data-radar="AMD" aria-pressed="true">
+          <span class="row1"><span class="tick-name">AMD</span><span class="level-High" style="font-size:12px">High</span></span>
+          <svg class="gauge" viewBox="0 20 300 148" role="img" aria-label="Chance of a 7 percent day: 34 percent">
+    <path class="track" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none"></path>
+    <path class="fill hot" d="M38.0,150.0 A112,112 0 0 1 262.0,150.0" stroke-width="30" fill="none" pathLength="100" stroke-dasharray="100" data-target="43.83" style="stroke-dashoffset: 43.83;"></path>
+    </svg><span class="mini-num">34%</span>
+          <span class="muted" style="font-size:12px;text-align:center">gap −3.5%</span></button>
+    </div></section><section class="section" aria-labelledby="h-sig">
+    <div class="section-head"><h2 class="h-section reveal in" style="--d:600ms" id="h-sig">Signals today</h2>
+      <p class="prose reveal in" style="--d:600ms"><strong>15:40 confirmed gap:</strong> Gap of 0.5%+ at the open, and by 15:40 the stock is 0.3%+ further the same way. Enter at 15:40, hold to the close. <strong>16:30 first-hour confirm:</strong> Gap of 1%+, and the first hour (15:30–16:30) moves 3%+ the same way. Enter at 16:30, hold to the close.</p></div>
+    <div class="sig-grid"><article class="glass lift sig-card reveal in" style="--d:600ms">
+      <div class="sig-head"><span class="sig-tick">SNDK</span><span class="status-tag loss"><i></i>SHORT signal</span></div>
+      <div class="chips"><span class="chip">15:40 confirmed gap</span><span class="chip">15:40</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>903.92</b></div><div><span class="label">Now</span><b class="gain">+4.67%</b></div>
+        <div><span class="label">Sector</span><b>ok</b></div></div>
+      <p class="warn" style="margin:0">Not taken. Blocked by: long-only. The market filter agreed with this short. Logged either way.</p></article><article class="glass lift sig-card reveal in" style="--d:600ms">
+      <div class="sig-head"><span class="sig-tick">SNDK</span><span class="status-tag loss"><i></i>SHORT signal</span></div>
+      <div class="chips"><span class="chip">16:30 first-hour confirm</span><span class="chip">16:30</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>864.15</b></div><div><span class="label">Now</span><b class="gain">+0.28%</b></div>
+        <div><span class="label">Sector</span><b>ok</b></div></div>
+      <p class="warn" style="margin:0">Not taken. Blocked by: long-only. The market filter agreed with this short. Logged either way.</p></article><article class="glass lift sig-card reveal in" style="--d:600ms">
+      <div class="sig-head"><span class="sig-tick">WDC</span><span class="status-tag loss"><i></i>SHORT signal</span></div>
+      <div class="chips"><span class="chip">16:30 first-hour confirm</span><span class="chip">16:30</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>290.92</b></div><div><span class="label">Now</span><b class="loss">−0.19%</b></div>
+        <div><span class="label">Sector</span><b>ok</b></div></div>
+      <p class="warn" style="margin:0">Not taken. Blocked by: long-only. The market filter agreed with this short. Logged either way.</p></article><article class="glass lift sig-card reveal in" style="--d:600ms">
+      <div class="sig-head"><span class="sig-tick">AMAT</span><span class="status-tag loss"><i></i>SHORT signal</span></div>
+      <div class="chips"><span class="chip">16:30 first-hour confirm</span><span class="chip">16:30</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>361.64</b></div><div><span class="label">Now</span><b class="loss">−0.19%</b></div>
+        <div><span class="label">Sector</span><b>ok</b></div></div>
+      <p class="warn" style="margin:0">Not taken. Blocked by: long-only. The market filter agreed with this short. Logged either way.</p></article><article class="glass lift sig-card reveal in" style="--d:600ms">
+      <div class="sig-head"><span class="sig-tick">AMD</span><span class="status-tag loss"><i></i>SHORT signal</span></div>
+      <div class="chips"><span class="chip">15:40 confirmed gap</span><span class="chip">15:40</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>559.14</b></div><div><span class="label">Now</span><b class="gain">+6.43%</b></div>
+        <div><span class="label">Sector</span><b>ok</b></div></div>
+      <p class="warn" style="margin:0">Not taken. Blocked by: long-only. The market filter agreed with this short. Logged either way.</p></article><article class="glass lift sig-card reveal in" style="--d:600ms">
+      <div class="sig-head"><span class="sig-tick">AMD</span><span class="status-tag loss"><i></i>SHORT signal</span></div>
+      <div class="chips"><span class="chip">16:30 first-hour confirm</span><span class="chip">16:30</span></div>
+      <div class="kv"><div><span class="label">Entry</span><b>534.69</b></div><div><span class="label">Now</span><b class="gain">+2.15%</b></div>
+        <div><span class="label">Sector</span><b>ok</b></div></div>
+      <p class="warn" style="margin:0">Not taken. Blocked by: long-only. The market filter agreed with this short. Logged either way.</p></article>
+      <div class="glass block reveal in" style="--d:600ms"><span class="label">What the research says</span>
+        <ul class="list"><li>15:40 confirmed gap · SHORT: 71 trades, 56% won, avg +0.10% (≈ no edge)</li><li>16:30 first-hour confirm · SHORT: +0.62% avg, but almost all from the April 2025 crash; ≈0 in every other half-year</li></ul>
+        <p class="sub" style="font-size:13px">Exit: 30 min before close (21:30), 3% stop. Risk budget: 1% of €2,000 for the whole day. Your 0.25% spread setting comes off every result; check T212's live spread before you enter.</p></div>
+    </div>
+    <div class="disclose"><button type="button" aria-expanded="false" aria-controls="all-setups" data-disclose="">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>All setups today, per stock</button>
+    <div class="disclose-body" id="all-setups" hidden=""><div class="table-wrap"><table class="data"><thead><tr><th scope="col" class="">Stock</th><th scope="col" class="">15:40 confirmed gap</th><th scope="col" class="">15:40 confirmed gap detail</th><th scope="col" class="">16:30 first-hour confirm</th><th scope="col" class="">16:30 first-hour confirm detail</th></tr></thead><tbody><tr><td>MU</td><td>No setup</td><td>gap −2.03%, first 10 min +0.08%</td><td>No setup</td><td>gap −2.03%, first hour −2.26%</td></tr><tr><td>SNDK</td><td>Skip SHORT @ 903.92 · now +4.67%</td><td>gap −2.27%, first 10 min −1.30% · sector ok · breadth 1/3 · ATR used 0.40</td><td>Skip SHORT @ 864.15 · now +0.28%</td><td>gap −2.27%, first hour −5.65% · sector ok · breadth 3/3 · ATR used 0.79</td></tr><tr><td>WDC</td><td>No setup</td><td>gap −1.99%, first 10 min +1.27%</td><td>Skip SHORT @ 290.92 · now −0.19%</td><td>gap −1.99%, first hour −4.66% · sector ok · breadth 3/3 · ATR used 0.90</td></tr><tr><td>LRCX</td><td>No setup</td><td>gap −1.80%, first 10 min +1.06%</td><td>No setup</td><td>gap −1.80%, first hour −2.27%</td></tr><tr><td>AMAT</td><td>No setup</td><td>gap −1.28%, first 10 min +0.48%</td><td>Skip SHORT @ 361.64 · now −0.19%</td><td>gap −1.28%, first hour −3.92% · sector ok · ATR used 1.01</td></tr><tr><td>ASML</td><td>No setup</td><td>gap −0.60%, first 10 min +0.97%</td><td>No setup</td><td>gap −0.60%, first hour −0.52%</td></tr><tr><td>AMD</td><td>Skip SHORT @ 559.14 · now +6.43%</td><td>gap −3.51%, first 10 min −1.04% · sector ok · ATR used 0.37</td><td>Skip SHORT @ 534.69 · now +2.15%</td><td>gap −3.51%, first hour −5.36% · sector ok · ATR used 1.05</td></tr></tbody></table></div></div></div>
+    
+  </section><section class="section" aria-labelledby="h-mkt">
+    <div class="section-head"><h2 class="h-section reveal in" style="--d:600ms" id="h-mkt">Sector tape</h2><p class="prose reveal in" style="--d:600ms">Versus yesterday's close. The dotted line in each chart is yesterday's close.</p></div>
+    <div class="tiles">
+    <div class="card tile lift reveal in" style="--d:600ms"><span class="label">SMH</span><span class="fig-val" data-count="482.01" data-fmt="n2">482.01</span>
+      <span class="chg"><span class="num loss">−3.99%</span> <span class="muted">· above VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,7.1L4.3,10.2L8.5,16.0L12.8,20.0L17.0,18.8L21.3,24.3L25.5,28.4L29.8,28.1L34.0,34.2L38.3,34.6L42.6,33.1L46.8,31.1L51.1,34.7L55.3,37.9L59.6,36.3L63.8,35.9L68.1,37.3L72.3,35.3L76.6,40.0L80.9,36.6L85.1,38.9L89.4,37.7L93.6,36.1L97.9,33.1L102.1,32.6L106.4,35.8L110.6,35.1L114.9,34.9L119.1,32.8L123.4,33.3L127.7,32.5L131.9,28.7L136.2,30.8L140.4,30.5L144.7,30.7L148.9,28.4L153.2,28.9L157.4,29.9L161.7,28.5L166.0,28.9L170.2,28.6L174.5,29.8L178.7,31.0L183.0,30.5L187.2,30.7L191.5,30.0L195.7,30.0L200.0,29.1" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="29.096856260221692" r="2.6" fill="var(--loss)"></circle></svg></div>
+    <div class="card tile lift reveal in" style="--d:600ms"><span class="label">SOXX</span><span class="fig-val" data-count="147.77" data-fmt="n2">147.77</span>
+      <span class="chg"><span class="num loss">−4.66%</span> <span class="muted">· below VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,7.3L4.3,10.3L8.5,16.6L12.8,20.2L17.0,19.2L21.3,25.1L25.5,28.9L29.8,28.0L34.0,34.2L38.3,34.9L42.6,33.5L46.8,31.8L51.1,35.6L55.3,38.5L59.6,36.8L63.8,36.1L68.1,37.3L72.3,35.5L76.6,40.0L80.9,36.9L85.1,39.0L89.4,37.7L93.6,36.2L97.9,33.2L102.1,32.6L106.4,35.9L110.6,35.1L114.9,34.8L119.1,32.5L123.4,33.1L127.7,32.4L131.9,28.4L136.2,30.8L140.4,30.6L144.7,31.1L148.9,28.7L153.2,28.9L157.4,29.9L161.7,28.4L166.0,28.9L170.2,28.6L174.5,29.7L178.7,31.0L183.0,30.4L187.2,30.6L191.5,30.0L195.7,30.0L200.0,29.2" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="29.24556962025316" r="2.6" fill="var(--loss)"></circle></svg></div>
+    <div class="card tile lift reveal in" style="--d:600ms"><span class="label">NVDA</span><span class="fig-val" data-count="161.11" data-fmt="n2">161.11</span>
+      <span class="chg"><span class="num loss">−2.97%</span> <span class="muted">· below VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,3.3L4.3,11.2L8.5,19.5L12.8,20.8L17.0,18.3L21.3,19.5L25.5,21.8L29.8,23.8L34.0,31.9L38.3,31.1L42.6,32.2L46.8,31.9L51.1,33.5L55.3,37.2L59.6,34.1L63.8,32.7L68.1,36.8L72.3,33.8L76.6,40.0L80.9,35.2L85.1,39.0L89.4,38.2L93.6,34.6L97.9,32.1L102.1,31.5L106.4,34.4L110.6,34.5L114.9,34.4L119.1,32.9L123.4,32.1L127.7,31.2L131.9,30.0L136.2,30.9L140.4,29.1L144.7,28.3L148.9,25.3L153.2,27.1L157.4,30.0L161.7,28.3L166.0,27.8L170.2,27.3L174.5,27.8L178.7,29.1L183.0,28.1L187.2,29.0L191.5,27.5L195.7,28.1L200.0,27.3" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="27.2563925362819" r="2.6" fill="var(--loss)"></circle></svg></div>
+    <div class="card tile lift reveal in" style="--d:600ms"><span class="label">QQQ</span><span class="fig-val" data-count="677.2" data-fmt="n2">677.20</span>
+      <span class="chg"><span class="num loss">−1.59%</span> <span class="muted">· below VWAP</span></span>
+      
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,4.6L4.3,7.0L8.5,11.4L12.8,14.0L17.0,12.3L21.3,18.3L25.5,26.0L29.8,26.0L34.0,36.8L38.3,36.0L42.6,36.2L46.8,33.8L51.1,36.2L55.3,38.5L59.6,37.2L63.8,34.7L68.1,36.6L72.3,34.7L76.6,40.0L80.9,35.3L85.1,39.4L89.4,39.7L93.6,37.8L97.9,33.2L102.1,33.6L106.4,37.4L110.6,36.6L114.9,36.7L119.1,34.5L123.4,34.8L127.7,34.3L131.9,27.4L136.2,30.7L140.4,30.4L144.7,31.4L148.9,28.7L153.2,28.9L157.4,30.7L161.7,28.1L166.0,28.4L170.2,27.5L174.5,29.2L178.7,31.5L183.0,30.9L187.2,31.0L191.5,30.0L195.7,30.1L200.0,28.6" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="28.62361382909319" r="2.6" fill="var(--loss)"></circle></svg></div><div class="card tile lift reveal in" style="--d:600ms"><span class="label">Watchlist breadth</span><span class="fig-val">−1.00</span>
+    <span class="meter" style="margin-top:6px"><span class="meter-track"><span class="meter-fill" style="width:0%"></span></span></span>
+    <span class="pre">(up − down) / total. Near ±1, the whole group moves together.</span></div></div>
+    <div class="section-head" style="margin-top:40px"><h3 class="h-sub reveal in" style="--d:600ms">Overnight read</h3><p class="prose reveal in" style="--d:600ms">Korea and Japan close 07:30 your time. When SK Hynix moved 3%+, MU/SNDK/WDC gapped the same way 77% of the time (60-day test).</p></div>
+    <div class="ov-grid"><div class="glass ov-card lift reveal in" style="--d:600ms"><span class="label">SK Hynix</span><span class="fig-val">1,216,000</span>
+    <span class="chg"><span class="num loss">−3.03%</span></span></div><div class="glass ov-card lift reveal in" style="--d:600ms"><span class="label">Samsung</span><span class="fig-val">207,000</span>
+    <span class="chg"><span class="num loss">−0.48%</span></span></div><div class="glass ov-card lift reveal in" style="--d:600ms"><span class="label">KOSPI</span><span class="fig-val">5,294</span>
+    <span class="chg"><span class="num loss">−0.91%</span></span></div><div class="glass ov-card lift reveal in" style="--d:600ms"><span class="label">Nikkei</span><span class="fig-val">61,156</span>
+    <span class="chg"><span class="num gain">+0.55%</span></span></div><div class="glass ov-card lift reveal in" style="--d:600ms"><span class="label">ASML (Amsterdam)</span><span class="fig-val">1,338</span>
+    <span class="chg"><span class="num loss">−2.85%</span></span></div></div></section><section class="section" aria-labelledby="h-wl">
+    <div class="section-head"><h2 class="h-section reveal in" style="--d:600ms" id="h-wl">Watchlist</h2>
+      <p class="prose reveal in" style="--d:600ms">Session of Fri 13 Nov · 240 min of trading. Open a stock for its 5-minute chart, the score reasons and headlines. The trend score is experimental: a simplified version didn't hold up in testing.</p></div>
+    <div class="wl-grid"><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="MU" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">MU</span><span class="num loss">−4.59%</span></span>
+      <span class="px" data-count="762.1963" data-fmt="n2">762.20</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,9.9L4.3,13.6L8.5,14.9L12.8,15.7L17.0,14.0L21.3,22.6L25.5,30.6L29.8,28.1L34.0,34.6L38.3,32.2L42.6,31.8L46.8,29.6L51.1,34.3L55.3,35.9L59.6,33.4L63.8,32.0L68.1,34.8L72.3,32.3L76.6,39.0L80.9,35.3L85.1,40.0L89.4,38.4L93.6,37.1L97.9,34.8L102.1,32.5L106.4,37.4L110.6,36.1L114.9,36.0L119.1,34.5L123.4,35.7L127.7,35.1L131.9,31.4L136.2,34.4L140.4,34.1L144.7,34.5L148.9,30.6L153.2,31.3L157.4,32.2L161.7,30.4L166.0,29.8L170.2,29.7L174.5,30.9L178.7,32.2L183.0,32.2L187.2,32.9L191.5,32.7L195.7,32.8L200.0,32.0" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="31.99276530834608" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −2.03%</span><span class="chip">VWAP −0.84%</span><span class="chip">RVOL 0.69</span></span>
+      <span class="verdict">Leaning DOWN, but volume is light · score −94</span></button><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="SNDK" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">SNDK</span><span class="num loss">−7.88%</span></span>
+      <span class="px" data-count="863.34" data-fmt="n2">863.34</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,6.9L4.3,15.5L8.5,22.8L12.8,23.3L17.0,22.3L21.3,26.6L25.5,32.3L29.8,32.3L34.0,37.0L38.3,36.9L42.6,35.1L46.8,34.1L51.1,37.6L55.3,39.7L59.6,38.0L63.8,37.5L68.1,38.4L72.3,36.8L76.6,40.0L80.9,37.0L85.1,39.4L89.4,38.6L93.6,37.6L97.9,36.3L102.1,36.1L106.4,37.3L110.6,36.8L114.9,36.8L119.1,35.4L123.4,35.5L127.7,34.9L131.9,32.8L136.2,36.1L140.4,35.7L144.7,36.8L148.9,35.2L153.2,34.8L157.4,35.2L161.7,34.7L166.0,34.3L170.2,34.5L174.5,35.0L178.7,35.7L183.0,35.0L187.2,35.5L191.5,35.6L195.7,35.2L200.0,34.5" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="34.45796408527646" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −2.27%</span><span class="chip">VWAP −1.71%</span><span class="chip">RVOL 0.78</span></span>
+      <span class="verdict">Leaning DOWN, but volume is light · score −97</span></button><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="WDC" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">WDC</span><span class="num loss">−6.20%</span></span>
+      <span class="px" data-count="292.03" data-fmt="n2">292.03</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,3.0L4.3,3.9L8.5,10.5L12.8,17.8L17.0,18.1L21.3,22.0L25.5,31.1L29.8,31.7L34.0,37.9L38.3,38.3L42.6,35.6L46.8,34.3L51.1,37.8L55.3,37.7L59.6,36.8L63.8,36.6L68.1,37.6L72.3,35.9L76.6,40.0L80.9,37.6L85.1,39.7L89.4,40.0L93.6,38.2L97.9,36.1L102.1,36.7L106.4,38.7L110.6,38.0L114.9,38.4L119.1,35.2L123.4,34.9L127.7,34.8L131.9,32.6L136.2,35.3L140.4,35.0L144.7,36.3L148.9,34.5L153.2,34.6L157.4,34.5L161.7,33.1L166.0,33.4L170.2,33.6L174.5,33.6L178.7,34.5L183.0,33.7L187.2,34.0L191.5,33.6L195.7,33.4L200.0,32.5" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="32.46425567703959" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −1.99%</span><span class="chip">VWAP −0.56%</span><span class="chip">RVOL 0.53</span></span>
+      <span class="verdict">Leaning DOWN, but volume is light · score −96</span></button><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="LRCX" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">LRCX</span><span class="num loss">−4.06%</span></span>
+      <span class="px" data-count="224.295" data-fmt="n2">224.30</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,3.3L4.3,5.1L8.5,13.0L12.8,18.8L17.0,15.9L21.3,24.1L25.5,28.4L29.8,27.0L34.0,31.9L38.3,33.0L42.6,29.6L46.8,26.8L51.1,31.1L55.3,35.7L59.6,34.6L63.8,33.9L68.1,36.1L72.3,34.7L76.6,40.0L80.9,37.7L85.1,40.0L89.4,39.2L93.6,36.6L97.9,33.2L102.1,31.8L106.4,35.5L110.6,35.3L114.9,32.8L119.1,29.8L123.4,30.2L127.7,29.3L131.9,24.5L136.2,25.8L140.4,26.5L144.7,27.7L148.9,25.8L153.2,26.1L157.4,27.2L161.7,26.3L166.0,26.5L170.2,26.8L174.5,28.3L178.7,29.4L183.0,28.4L187.2,28.7L191.5,28.3L195.7,27.7L200.0,27.0" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="26.974431818181863" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −1.80%</span><span class="chip">VWAP +0.04%</span><span class="chip">RVOL 0.56</span></span>
+      <span class="verdict">Leaning DOWN: needs confirmation · score −60</span></button><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="AMAT" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">AMAT</span><span class="num loss">−4.79%</span></span>
+      <span class="px" data-count="363.035" data-fmt="n2">363.04</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,7.7L4.3,4.4L8.5,8.6L12.8,16.9L17.0,12.8L21.3,23.2L25.5,29.5L29.8,30.7L34.0,34.6L38.3,35.9L42.6,31.3L46.8,28.2L51.1,32.5L55.3,37.5L59.6,36.3L63.8,37.6L68.1,37.3L72.3,36.0L76.6,40.0L80.9,37.2L85.1,38.9L89.4,36.7L93.6,35.0L97.9,31.1L102.1,30.7L106.4,33.8L110.6,33.2L114.9,33.1L119.1,30.9L123.4,31.6L127.7,30.3L131.9,26.9L136.2,27.3L140.4,26.7L144.7,27.4L148.9,25.9L153.2,25.6L157.4,26.8L161.7,26.2L166.0,26.4L170.2,25.8L174.5,27.3L178.7,28.2L183.0,27.7L187.2,27.7L191.5,27.4L195.7,27.2L200.0,26.2" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="26.18586293505559" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −1.28%</span><span class="chip">VWAP −0.48%</span><span class="chip">RVOL 1.23</span></span>
+      <span class="verdict">Trend day DOWN likely · score −93</span></button><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="ASML" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">ASML</span><span class="num loss">−1.13%</span></span>
+      <span class="px" data-count="1480.22" data-fmt="n2">1,480.22</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="6.2" y2="6.2" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,4.7L4.3,0.0L8.5,9.0L12.8,16.8L17.0,8.8L21.3,16.9L25.5,28.3L29.8,30.2L34.0,38.1L38.3,36.1L42.6,31.6L46.8,25.2L51.1,36.8L55.3,38.4L59.6,39.1L63.8,37.8L68.1,37.9L72.3,33.7L76.6,40.0L80.9,35.8L85.1,38.6L89.4,36.9L93.6,33.0L97.9,30.1L102.1,30.0L106.4,35.1L110.6,34.3L114.9,34.2L119.1,31.2L123.4,32.2L127.7,32.1L131.9,24.5L136.2,27.4L140.4,26.1L144.7,27.4L148.9,23.8L153.2,24.0L157.4,27.1L161.7,24.8L166.0,24.9L170.2,24.3L174.5,26.5L178.7,27.9L183.0,27.6L187.2,28.7L191.5,27.5L195.7,26.7L200.0,25.4" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="25.3683878825042" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −0.60%</span><span class="chip">VWAP +0.02%</span><span class="chip">RVOL 0.71</span></span>
+      <span class="verdict">Leaning DOWN: needs confirmation · score −49</span></button><button type="button" class="glass lift wl-card reveal in" style="--d:600ms" data-ticker="AMD" aria-expanded="false" aria-controls="wl-panel">
+      <span class="top"><span class="tick-name">AMD</span><span class="num loss">−10.49%</span></span>
+      <span class="px" data-count="524.1701" data-fmt="n2">524.17</span>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+    <line class="base" x1="0" x2="200" y1="0.0" y2="0.0" vector-effect="non-scaling-stroke"></line>
+    <path d="M0.0,13.7L4.3,16.5L8.5,21.4L12.8,23.2L17.0,23.5L21.3,28.3L25.5,30.6L29.8,29.6L34.0,35.1L38.3,35.1L42.6,34.4L46.8,31.7L51.1,34.6L55.3,36.3L59.6,34.4L63.8,33.9L68.1,35.0L72.3,34.0L76.6,36.7L80.9,35.4L85.1,37.7L89.4,37.4L93.6,37.4L97.9,36.7L102.1,37.3L106.4,40.0L110.6,39.3L114.9,39.8L119.1,38.5L123.4,39.0L127.7,38.4L131.9,35.9L136.2,38.5L140.4,38.7L144.7,38.9L148.9,37.2L153.2,37.9L157.4,39.0L161.7,38.0L166.0,38.7L170.2,38.1L174.5,38.7L178.7,39.8L183.0,38.9L187.2,39.2L191.5,38.8L195.7,38.9L200.0,38.2" vector-effect="non-scaling-stroke"></path>
+    <circle cx="200" cy="38.24369221954781" r="2.6" fill="var(--loss)"></circle></svg>
+      <span class="chips"><span class="chip">Gap −3.51%</span><span class="chip">VWAP −2.28%</span><span class="chip">RVOL 1.03</span></span>
+      <span class="verdict">Trend day DOWN likely · score −98</span></button></div></section><section class="section" aria-labelledby="h-cal">
+    <div class="section-head"><h2 class="h-section reveal in" style="--d:600ms" id="h-cal">Calendar</h2><p class="prose reveal in" style="--d:600ms">From catalysts.csv plus earnings dates from Yahoo. Add your own events to catalysts.csv.</p></div>
+    <div class="cal"><div class="glass lift reveal in" style="--d:600ms"><h3 class="h-sub" style="margin-bottom:8px">Today</h3><p class="empty">Nothing scheduled.</p></div>
+      <div class="glass lift reveal in" style="--d:600ms"><h3 class="h-sub" style="margin-bottom:8px">Next 3 weeks</h3><div class="cal-item"><span class="label">Tue 17 Nov · 22:00</span><span>Nvidia (NVDA) Q3 FY27 earnings (after US close)</span><span class="muted" style="font-size:13px">Very high · Confirmed</span></div><div class="cal-item"><span class="label">Wed 25 Nov · 20:00</span><span>Fed Beige Book</span><span class="muted" style="font-size:13px">Low · Confirmed</span></div></div></div></section></section>
+  <section class="page" id="page-log" data-page="log" hidden=""></section>
+  <section class="page" id="page-spread" data-page="spread" hidden=""></section>
+  <section class="page" id="page-backtest" data-page="backtest" hidden=""></section>
+  <section class="page" id="page-long" data-page="long" hidden=""></section>
+  <section class="page" id="page-guide" data-page="guide" hidden=""></section>
+</main>
+
+<footer class="wrap foot">
+  <p>Data: Yahoo Finance via yfinance, free and sometimes a few minutes late. Every number comes from past data and can stop working. Not financial advice.</p>
+</footer>
+
+<dialog class="drawer" id="drawer" aria-labelledby="drawerTitle">
+  <form method="dialog" class="drawer-inner" id="settingsForm">
+    <div class="drawer-head">
+      <h2 id="drawerTitle">Settings</h2>
+      <button class="icon-btn" value="cancel" aria-label="Close settings" formnovalidate="">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="settingsFields"></div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" type="button" id="resetSettings">Reset to defaults</button>
+      <button class="btn btn-primary" type="submit" value="apply">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/web/app.js?v=10" defer=""></script>
+
+
+</body></html>

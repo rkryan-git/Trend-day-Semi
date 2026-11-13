@@ -381,34 +381,42 @@ button.lift:hover, a.lift:hover, .lift[role="button"]:hover { transform: transla
 .story h2 { margin: 0 0 6px; }
 .story strong { font-weight: 600; }
 
-/* news radar fold: closed by default, remembers what you did last */
-.news-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
-  padding: 4px 0; border-radius: 10px; }
+/* news radar fold: closed by default, remembers what you did last (audit full-4 fixes) */
+.news-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  min-height: 44px; padding: 4px 0; border-radius: 10px; }
 .news-fold > summary::-webkit-details-marker { display: none; }
 .news-fold > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 .news-fold .fold-meta { font-size: 13px; color: var(--muted); }
-.news-fold .fold-chev { width: 20px; height: 20px; margin-left: auto; align-self: center; fill: none; stroke: var(--muted);
+.news-fold .fold-chev { width: 22px; height: 22px; flex: none; fill: none; stroke: var(--muted);
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
-.news-fold[open] .fold-chev { transform: rotate(180deg); }
+.news-fold[open] .fold-chev { transform: rotate(90deg); }
 .news-fold > summary:hover .fold-chev { stroke: var(--ink); }
 .news-fold .fold-body { margin: 12px 0 20px; }
 @media (prefers-reduced-motion: reduce) { .news-fold .fold-chev { transition: none; } }
 
-/* bottom dock: CFD / Invest on phones, like an app tab bar */
+/* bottom dock: CFD / Invest on phones and small tablets, same selected look as the top switch */
 .dock { display: none; }
-@media (max-width: 720px) {
+@media (max-width: 820px) {
   .nav-row .acct { display: none; }
   .dock { display: flex; position: fixed; z-index: 40; left: 50%; transform: translateX(-50%);
-    bottom: calc(10px + env(safe-area-inset-bottom)); gap: 4px; padding: 5px; border-radius: 22px;
+    bottom: calc(10px + env(safe-area-inset-bottom)); gap: 4px; padding: 5px; border-radius: 999px;
     background: var(--nav-glass, var(--surface)); border: 1px solid var(--line);
     -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
     box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
   .dock button { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 92px; min-height: 52px;
-    padding: 7px 14px 6px; border: 0; border-radius: 17px; background: transparent; color: var(--muted);
-    font: 500 11px/1 var(--body); letter-spacing: .01em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    padding: 7px 14px 6px; border: 0; border-radius: 999px; background: transparent; color: var(--muted);
+    font: 500 12px/1 var(--body); letter-spacing: .01em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  [data-theme="dark"] .dock { border-radius: 12px; }
+  [data-theme="dark"] .dock button { border-radius: 8px; }
   .dock svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-  .dock button[aria-pressed="true"] { color: var(--ink); background: var(--surface-2, var(--hover)); }
-  body[data-acct="invest"] .dock button[data-acct="invest"][aria-pressed="true"] { color: var(--gain); }
+  .dock button[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); }
+  body[data-acct="invest"] .dock button[data-acct="invest"][aria-pressed="true"] { background: var(--gain); color: #FFFFFF; }
   .dock button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
+/* spending */
+.chip-spent { color: var(--caution); border-color: color-mix(in srgb, var(--caution) 45%, transparent); }
+.sp-bars { display: flex; align-items: flex-end; gap: 6px; height: 84px; margin-top: 16px; }
+.sp-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.sp-bar i { display: block; width: 100%; max-width: 26px; border-radius: 4px 4px 2px 2px; background: var(--muted); opacity: .55; }
+.sp-bar span { font-size: 10px; color: var(--muted); }
