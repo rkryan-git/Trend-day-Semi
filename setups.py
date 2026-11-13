@@ -346,6 +346,8 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
                     "close": np.nan, "result_pct": np.nan, "status": "open"})
     if new:
         log = pd.concat([log, pd.DataFrame(new)], ignore_index=True)
+    for col in ("plan", "blocked_by"):          # text columns (pandas 3 types an all-empty column as float)
+        log[col] = log[col].astype(object)
     # older rows (before blocked_by existed): reconstruct the reason from what was logged
     fill = log["blocked_by"].isna() & ~log["passed_filters"].astype(str).str.lower().isin(["true", "1"])
     for i, r in log[fill].iterrows():
