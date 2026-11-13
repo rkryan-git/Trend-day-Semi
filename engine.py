@@ -495,6 +495,9 @@ def live(s: Settings) -> dict:
     out["watchlist"] = {"rows": wl,
                         "session": f"{any_snap.extra['date']:%a %d %b}" if any_snap is not None else None,
                         "minutes": any_snap.bars * m.BAR_MINUTES if any_snap is not None else None}
+    nf = news_feed(tuple(sorted(set(WATCH) | set(NEWS_LEADERS))))
+    out["news"] = nf
+    out["decision"]["breaking"] = [n for n in nf["items"] if n["impact"] == "high" and n["age_min"] <= 180][:3]
     out["exit_label"] = s.exit_label
     out["caption"] = {"stop": s.stop_pct, "risk_day": s.risk_day, "capital": s.capital, "spread": s.spread}
     return out
@@ -565,6 +568,69 @@ def decide(phase, now_ny, plan, fired, filt, s: Settings, stay_out, catalysts, l
         d.update(state="done", head="No trade today", tone="muted",
                  sub="Both setup checks have passed without a signal you'd take. Nothing to do.")
     return d
+
+
+# ----------------------------------------------------------------------------
+# News radar: Alpaca's real-time news feed (Benzinga), free with an Alpaca account
+# ----------------------------------------------------------------------------
+NEWS_LEADERS = ["NVDA", "TSM", "SMH", "QQQ"]
+HIGH_WORDS = ("resign", "steps down", "step down", "ouster", "oust", "remove ceo", "fired", "ceo ", "interim ceo",
+              "investigation", "probe", "subpoena", "fraud", "charges", "lawsuit", "export ban", "export control",
+              "export restriction", "sanction", "tariff", "guidance", "preannounce", "profit warning", "halt",
+              "bankruptcy", "acquire", "acquisition", "merger", "buyout", "takeover", "to buy ", "recall", "cyberattack",
+              "accounting", "restate", "default", "fda")
+MEDIUM_WORDS = ("downgrade", "upgrade", "price target", "initiates", "earnings", "results", "beats", "misses",
+                "revenue", "outlook", "stake", "insider", "buyback", "offering", "dividend", "contract", "order")
+
+
+def _secret(name: str):
+    import os
+    v = os.environ.get(name)
+    if v:
+        return v
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+            return winreg.QueryValueEx(key, name)[0]
+    except Exception:
+        return None
+
+
+def _impact(headline: str) -> str:
+    h = headline.lower()
+    if any(w in h for w in HIGH_WORDS):
+        return "high"
+    if any(w in h for w in MEDIUM_WORDS):
+        return "medium"
+    return "normal"
+
+
+@ttl_cache(55)
+def news_feed(symbols: tuple) -> dict:
+    key, sec = _secret("ALPACA_API_KEY"), _secret("ALPACA_SECRET_KEY")
+    if not (key and sec):
+        return {"error": "Add ALPACA_API_KEY and ALPACA_SECRET_KEY to use the news radar.", "items": []}
+    from alpaca.data.historical.news import NewsClient
+    from alpaca.data.requests import NewsRequest
+    now = datetime.now(AMS)
+    try:
+        r = NewsClient(key, sec).get_news(NewsRequest(symbols=",".join(symbols), start=now - timedelta(hours=24),
+                                                      end=now, limit=50, sort="desc"))
+    except Exception as e:
+        return {"error": f"News feed unavailable: {e}", "items": []}
+    raw = r.data.get("news", []) if hasattr(r, "data") else getattr(r, "news", [])
+    items, seen = [], set()
+    for n in raw:
+        head = (n.headline or "").strip()
+        if not head or head.lower() in seen:
+            continue
+        seen.add(head.lower())
+        t = n.created_at.astimezone(AMS)
+        items.append({"time": t.strftime("%H:%M"), "day": t.strftime("%a %d %b"), "age_min": int((now - t).total_seconds() // 60),
+                      "headline": head, "source": n.source, "url": n.url,
+                      "symbols": [x for x in (n.symbols or []) if x in symbols][:4], "impact": _impact(head)})
+    items.sort(key=lambda x: x["age_min"])
+    return {"error": None, "items": items}
 
 
 def news(ticker: str) -> list:

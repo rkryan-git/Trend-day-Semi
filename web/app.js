@@ -267,6 +267,12 @@ function renderLive(d) {
 
   // ---- fact blocks
   const blocks = [];
+  const ago = (m) => (m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} h ${m % 60} min ago`);
+  if ((D.breaking || []).length) {
+    blocks.push(`<div class="glass block lift breaking"><span class="label caution">Breaking · high impact</span>
+      ${D.breaking.map((n) => `<a class="big news-hl" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.headline)}</a>
+        <p class="sub">${esc(n.time)} · ${ago(n.age_min)}${n.symbols.length ? " · " + n.symbols.map(esc).join(", ") : ""} · ${esc(n.source)}</p>`).join("")}</div>`);
+  }
   if (D.filter) {
     const f = D.filter, note = String(f.note || "").replace(/^since today's open: /, "").replace(/-(\d)/g, MINUS + "$1");
     blocks.push(`<div class="glass block lift"><span class="label">Market filter</span>
@@ -290,6 +296,18 @@ function renderLive(d) {
       `<p class="prose">Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.</p>`);
   }
   const factRow = blocks.length ? `<div class="bento" style="margin-top:16px">${blocks.map((b) => b.replace('class="glass block lift"', `class="glass block lift ${span} ${rv()}"`)).join("")}</div>` : "";
+
+  // ---- news radar
+  const nf = d.news || { items: [], error: null };
+  const newsSec = `<section class="section" aria-labelledby="h-news">
+    <div class="section-head"><h2 class="h-section ${rv()}" id="h-news">News radar</h2>
+      <p class="prose ${rv()}">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Sorted by impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
+    <div class="glass news-list ${rv()}">${nf.error ? `<p class="empty">${esc(nf.error)}</p>` : !nf.items.length ? '<p class="empty">No headlines in the last 24 hours.</p>' :
+      nf.items.slice(0, 18).map((n) => `<a class="news-row imp-${n.impact}" href="${esc(n.url)}" target="_blank" rel="noopener">
+        <span class="label">${esc(n.time)}${n.age_min >= 600 ? " · " + esc(n.day) : ""}</span>
+        <span class="imp">${n.impact === "high" ? "High" : n.impact === "medium" ? "Medium" : ""}</span>
+        <span class="hl">${esc(n.headline)}</span>
+        <span class="syms">${n.symbols.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</span></a>`).join("")}</div></section>`;
 
   // ---- radar
   const rows = d.radar.rows.filter((r) => r.level), rates = d.radar.rates;
@@ -386,7 +404,7 @@ function renderLive(d) {
       <div class="glass lift ${rv()}"><h3 class="h-sub" style="margin-bottom:8px">Next 3 weeks</h3>${up.length ? up.map((c) => `<div class="cal-item"><span class="label">${esc(new Date(c.date + "T12:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }))}${c.time ? " · " + esc(c.time) : ""}</span><span>${esc(c.event)}</span><span class="muted" style="font-size:13px">${esc(c.impact)} · ${esc(c.status)}</span></div>`).join("") : '<p class="empty">Nothing on the calendar.</p>'}</div></div></section>`;
 
   const page = $("#page-live");
-  page.innerHTML = hero + factRow + why + radar + signals + market + watch + cal;
+  page.innerHTML = hero + factRow + why + newsSec + radar + signals + market + watch + cal;
   restoreOpen(page);
   if (wlOpen) loadNews(wlOpen);
   animateIn(page, intro);
