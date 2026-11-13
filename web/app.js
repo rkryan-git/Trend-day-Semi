@@ -80,7 +80,7 @@ function spark(values, base, chg, color, times) {
     const area = `${d}L${w},${ref}L0,${ref}Z`;
     const tipData = ` data-v='${JSON.stringify(values)}' data-t='${JSON.stringify(times || [])}' data-lo="${lo}" data-hi="${hi}" data-h="${h}"${isNum(base) ? ` data-ref="${base}" data-ref-label="vs yesterday's close"` : ""}`;
     const hm = (s) => String(s || "").slice(-5);
-    const tl = times && times.length > 1 ? `<div class="chart-axis"><span>${esc(hm(times[0]))}</span><span>${esc(hm(times[Math.floor(times.length / 2)]))}</span><span>${esc(String(times[times.length - 1] || "").slice(0, -6))} ${esc(hm(times[times.length - 1]))}</span></div>` : "";
+    const tl = times && times.length > 1 ? `<div class="chart-axis"><span>${esc(hm(times[0]))}</span><span>${esc(hm(times[Math.floor(times.length / 2)]))}</span><span><span class="ax-d">${esc(String(times[times.length - 1] || "").slice(0, -6))} </span>${esc(hm(times[times.length - 1]))}</span></div>` : "";
     return `<svg class="spark area-spark has-tip${flat ? " flat" : ""}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"${tipData}>
       <defs>
         <clipPath id="${id}u"><rect x="0" y="0" width="${w}" height="${ref}"/></clipPath>
@@ -197,6 +197,18 @@ function dataTable(t, opts = {}) {
   }).join("")}</tr>`).join("");
   return `<div class="table-wrap"><table class="data"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
+
+function markScrollers(root = document) {
+  root.querySelectorAll(".table-wrap").forEach((w) => {
+    const more = w.scrollWidth > w.clientWidth + 2;
+    w.classList.toggle("scrolls", more);
+    const upd = () => w.classList.toggle("at-end", w.scrollLeft + w.clientWidth >= w.scrollWidth - 2);
+    if (more && !w.dataset.sc) { w.dataset.sc = "1"; w.addEventListener("scroll", upd, { passive: true }); }
+    upd();
+  });
+}
+new MutationObserver(() => requestAnimationFrame(() => markScrollers())).observe(document.documentElement, { childList: true, subtree: true });
+addEventListener("resize", () => markScrollers());
 
 function disclose(id, label, inner, open = false) {
   return `<div class="disclose"><button type="button" aria-expanded="${open}" aria-controls="${id}" data-disclose>
@@ -543,10 +555,27 @@ async function renderLog() {
     const d = await api("/api/log?" + qs());
     p.innerHTML = head("Signal log", "Every setup signal is written to signal_log.csv with its entry price and the filter state at that moment, then filled in with the close at your exit time. Rejected signals are logged too, so you can see live whether the filters help. After 30+ signals per line, trust these numbers over the research.") +
       (d.count ? `<section class="section" style="padding-top:0"><div class="section-head"><h2 class="h-section">Results so far</h2><p class="prose">Closed signals the app called in real time. Results are % moves from entry to the close; after spread subtracts your ${fmt(Number(S.spread))}% setting. The log doesn't apply the 3% stop.${d.reconstructed ? ` ${d.reconstructed} signal${d.reconstructed > 1 ? "s were" : " was"} reconstructed after the fact (the app wasn't running at signal time) and ${d.reconstructed > 1 ? "are" : "is"} not counted here; ${d.reconstructed > 1 ? "they stay" : "it stays"} in the table below with live = false.` : ""}</p></div>${dataTable(d.stats, { empty: "No closed signals yet." })}</section>
-      <section class="section"><div class="section-head"><h2 class="h-section">All signals</h2><a class="btn btn-ghost btn-sm" href="/api/log.csv" download>Download CSV</a></div>${dataTable(d.rows)}</section>`
+      <section class="section"><div class="section-head"><h2 class="h-section">All signals</h2><a class="btn btn-ghost btn-sm" href="/api/log.csv" download>Download CSV</a></div>${dataTable(logView(d.rows))}<p class="prose" style="font-size:13px;margin-top:10px">The CSV has every column, including breadth, ATR used and the exit setting.</p></section>`
         : '<p class="empty">No signals logged yet. Keep the app open during US hours, from 15:30 your time.</p>');
   } catch (e) { p.insertAdjacentHTML("beforeend", `<p class="err">${esc(e.message)}</p>`); }
 }
+// the on-screen log shows the columns you decide on; the CSV keeps everything
+function logView(t) {
+  if (!t || !t.columns) return t;
+  const ix = (c) => t.columns.indexOf(c);
+  const short = (x) => String(x || "").replace("confirmed gap", "gap").replace("first-hour confirm", "1st hour");
+  const cols = [["date", "Date"], ["ticker", "Stock"], ["setup", "Setup"], ["direction", "Side"], ["entry", "Entry"], ["close", "Exit"],
+    ["result_pct", "Result %"], ["status", "Status"], ["blocked_by", "Not taken because"], ["sector_ok", "Market agreed"], ["live", "Live call"]];
+  const keep = cols.filter(([c]) => ix(c) >= 0);
+  return { columns: keep.map(([, l]) => l), rows: t.rows.map((r) => keep.map(([c]) => {
+    const v = r[ix(c)];
+    if (c === "setup") return short(v);
+    if (c === "blocked_by") return v == null || v === "" ? "taken" : v;
+    if (c === "live") return v === false || String(v).toLowerCase() === "false" ? "no (reconstructed)" : "yes";
+    return v;
+  })) };
+}
+
 function head(title, text) { return `<div class="page-head"><h1 class="h-display">${esc(title)}</h1><p class="prose">${esc(text)}</p></div>`; }
 
 // ------------------------------------------------------------------ Spread log

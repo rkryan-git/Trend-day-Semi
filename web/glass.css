@@ -337,3 +337,36 @@ button.lift:hover, a.lift:hover, .lift[role="button"]:hover { transform: transla
 .tabs a { padding: 8px 10px; }
 @media (max-width: 1360px) { .brand-name { display: none; } }
 @media (max-width: 1180px) { .status > span { display: none; } }
+
+/* audit full-3 fixes */
+/* 1: prose cells wrap again (the Guide table was clipped); numbers stay on one line */
+.table-wrap .data td { white-space: normal; }
+.table-wrap .data td.n, .table-wrap .data th { white-space: nowrap; }
+.guide .data td { min-width: 120px; max-width: 520px; }
+/* 2: tables wider than their card show a fade and a hint instead of silently hiding columns */
+.table-wrap.scrolls:not(.at-end) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent); }
+.table-wrap.scrolls::after { content: "scroll →"; position: sticky; left: calc(100% - 64px); bottom: 6px; display: inline-block;
+  font-size: 11px; color: var(--muted); padding-top: 6px; }
+.table-wrap.scrolls.at-end::after { content: ""; }
+/* 3 + 4: compact signal rows keep every fact on phones, stacked instead of hidden */
+.sig-row { align-items: center; }
+@media (max-width: 720px) {
+  .sig-head-row { display: none; }
+  .sig-row { grid-template-columns: 1fr auto; row-gap: 4px; }
+  .sig-row > :nth-child(n+4) { display: block; }
+  .sig-row > :nth-child(1) { grid-column: 1; } .sig-row > :nth-child(2) { grid-column: 2; justify-self: end; }
+  .sig-row > :nth-child(3) { grid-column: 1 / -1; font-size: 13px; }
+  .sig-row > :nth-child(4) { grid-column: 1; } .sig-row > :nth-child(5) { grid-column: 2; justify-self: end; }
+  .sig-row > :nth-child(6) { grid-column: 1 / -1; font-size: 13px; }
+}
+/* 5: narrow chart cards show fewer, shorter axis labels */
+.tiles .chart-axis span:nth-child(2) { display: none; }
+.tiles .chart-axis .ax-d, .wl-card .chart-axis .ax-d { display: none; }
+@media (max-width: 720px) { .chart-axis span:nth-child(2) { display: none; } .chart-axis .ax-d { display: none; } }
+/* 6: signal cards fill the row instead of leaving the right half empty */
+.sig-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+/* 7: breaking headlines at most two lines */
+.breaking .news-hl { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* 8: a bare status dot means nothing on a phone */
+@media (max-width: 720px) { .status { display: none; } }
