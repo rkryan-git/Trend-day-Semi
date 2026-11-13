@@ -308,7 +308,7 @@ def radar(daily_hist: pd.DataFrame | None, gap: float | None, hynix: float | Non
 # Signal log (CSV next to the app)
 # ----------------------------------------------------------------------------
 LOG_COLS = ["date", "ticker", "setup", "direction", "entry_time_ams", "entry", "sector_ok", "breadth",
-            "atr_used", "passed_filters", "plan", "exit_mins_before_close", "close", "result_pct", "status"]
+            "atr_used", "passed_filters", "plan", "blocked_by", "exit_mins_before_close", "close", "result_pct", "status"]
 
 
 def read_log(path: Path) -> pd.DataFrame:
@@ -334,6 +334,7 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
         ctx = item[4] if len(item) > 4 else None
         passed = item[5] if len(item) > 5 else True
         plan = item[6] if len(item) > 6 else ""
+        blocked = item[7] if len(item) > 7 else ""
         if (str(d), tk, st_.setup) in keys:
             continue
         new.append({"date": str(d), "ticker": tk, "setup": st_.setup, "direction": "LONG" if st_.direction > 0 else "SHORT",
@@ -341,10 +342,20 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
                     "sector_ok": None if ctx is None else ctx.sector_ok,
                     "breadth": None if ctx is None or ctx.breadth is None else f"{ctx.breadth}/3",
                     "atr_used": None if ctx is None or ctx.atr_used is None else round(ctx.atr_used, 2),
-                    "passed_filters": passed, "plan": plan, "exit_mins_before_close": exit_before,
+                    "passed_filters": passed, "plan": plan, "blocked_by": blocked, "exit_mins_before_close": exit_before,
                     "close": np.nan, "result_pct": np.nan, "status": "open"})
     if new:
         log = pd.concat([log, pd.DataFrame(new)], ignore_index=True)
+    # older rows (before blocked_by existed): reconstruct the reason from what was logged
+    fill = log["blocked_by"].isna() & ~log["passed_filters"].astype(str).str.lower().isin(["true", "1"])
+    for i, r in log[fill].iterrows():
+        why = []
+        if r["direction"] == "SHORT":
+            why.append("long-only")
+        if str(r["sector_ok"]).lower() not in ("true", "1"):
+            why.append("SMH/QQQ not aligned")
+        log.loc[i, "blocked_by"] = ", ".join(why)
+    backfilled = bool(fill.any())
     for i, r in log[log["status"] == "open"].iterrows():
         s = sessions.get(r["ticker"], {}).get(pd.Timestamp(r["date"]).date())
         if s is None or len(s) == 0:
@@ -361,7 +372,7 @@ def update_log(path: Path, triggered: list, sessions: dict, exit_before: int = 0
             log.loc[i, "close"] = round(close, 4)
             log.loc[i, "result_pct"] = round(d * (close / float(r["entry"]) - 1) * 100, 3)
             log.loc[i, "status"] = "closed"
-    if new or (log["status"] == "closed").any():
+    if new or backfilled or (log["status"] == "closed").any():
         log.to_csv(path, index=False)
     return log
 
@@ -371,12 +382,12 @@ def log_stats(log: pd.DataFrame, spread: float = 0.0) -> pd.DataFrame:
     if c.empty:
         return pd.DataFrame()
     c["result_pct"] = c["result_pct"].astype(float)
-    c["passed"] = c["passed_filters"].astype(str).str.lower().isin(["true", "1"])
+    c["passed"] = c["sector_ok"].astype(str).str.lower().isin(["true", "1"])   # market filter agreed (long: up, short: down)
     rows = {}
     for (s, d, p), g in c.groupby(["setup", "direction", "passed"]):
         r = g["result_pct"]
         lo, hi = m.wilson(int((r > 0).sum()), len(r))
-        rows[f"{s} · {d} · {'passed filters' if p else 'filtered out'}"] = {
+        rows[f"{s} · {d} · {'market agreed' if p else 'market against'}"] = {
             "signals": len(r), "won_%": round((r > 0).mean() * 100, 1), "95%_range": f"{lo}–{hi}%",
             "avg_%": round(r.mean(), 2), "avg_after_spread_%": round(r.mean() - spread, 2),
             "median_%": round(r.median(), 2), "total_%": round(r.sum(), 2)}

@@ -401,7 +401,7 @@ def live(s: Settings) -> dict:
                 fired.append({"ticker": t, "setup": st_.setup, "side": side, "blocked": blocked, "taken": False,
                               "entry": clean(st_.entry), "now": clean(now_r), "time": bar_time_ams(sx, st_.entry_bar),
                               "filters": cell["filters"]})
-                triggered.append([today_ny, t, st_, bar_time_ams(sx, st_.entry_bar), ctx, passed, ""])
+                triggered.append([today_ny, t, st_, bar_time_ams(sx, st_.entry_bar), ctx, passed, "", ", ".join(blocked)])
                 marks.setdefault(t, []).append(st_)
                 if passed:
                     takes.append({"ticker": t, "setup": st_.setup, "direction": st_.direction, "entry": st_.entry,

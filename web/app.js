@@ -316,11 +316,11 @@ function renderLive(d) {
       [c.detail, c.filters ? `sector ${c.filters.sector ? "ok" : "not ok"}${c.filters.breadth != null ? ` · breadth ${c.filters.breadth}/3` : ""}${isNum(c.filters.atr_used) ? ` · ATR used ${fmt(c.filters.atr_used)}` : ""}` : ""].filter(Boolean).join(" · ")])]),
   };
   const sigCards = fired.map((f) => `<article class="glass lift sig-card ${f.taken ? "taken" : ""} ${rv()}">
-      <div class="sig-head"><span class="sig-tick">${esc(f.ticker)}</span><span class="status-tag ${f.taken ? "gain" : "muted"}"><i></i>${f.taken ? "TAKE" : "Skip"} ${f.side}</span></div>
+      <div class="sig-head"><span class="sig-tick">${esc(f.ticker)}</span><span class="status-tag ${f.taken ? "gain" : f.side === "SHORT" ? "loss" : "muted"}"><i></i>${f.taken ? `TAKE ${f.side}` : `${f.side} signal`}</span></div>
       <div class="chips"><span class="chip">${esc(f.setup)}</span><span class="chip">${esc(f.time)}</span></div>
       <div class="kv"><div><span class="label">Entry</span><b>${fmt(f.entry)}</b></div><div><span class="label">Now</span><b class="${tone(f.now)}">${pct(f.now)}</b></div>
         <div><span class="label">Sector</span><b>${f.filters.sector ? "ok" : "not ok"}</b></div></div>
-      ${f.taken ? "" : `<p class="warn" style="margin:0">Skipped: ${esc((f.blocked || []).join(", "))}</p>`}</article>`).join("");
+      ${f.taken ? "" : `<p class="warn" style="margin:0">Not taken. Blocked by: ${esc((f.blocked || []).join(", ") || "today's plan")}${f.side === "SHORT" && f.filters.sector ? ". The market filter agreed with this short." : ""} Logged either way.</p>`}</article>`).join("");
   const nextCheck = d.phase === "open" ? (D.state === "waiting" ? D.sub : "Both setup checks are done for today.") : "Setup checks run at 15:40 and 16:30 your time.";
   const signals = `<section class="section" aria-labelledby="h-sig">
     <div class="section-head"><h2 class="h-section ${rv()}" id="h-sig">Signals today</h2>
