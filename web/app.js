@@ -216,8 +216,8 @@ const radarChips = (r) => [
 function featureHTML(r, rates) {
   return `<div>${gauge(r.chance, r.level, rates, false, "gFeature")}<div class="g-num" id="gNum">${Math.round(r.chance)}%</div></div>
     <div class="g-meta">
-      <span class="label">Chance of a ±7% day</span>
       <h3 class="g-name" id="gName">${esc(r.ticker)}</h3>
+      <span class="sub muted">Chance of a ±7% day</span>
       <div id="gLevel">${levelTag(r.level)}</div>
       <div class="chips" id="gChips">${radarChips(r)}</div>
       <p class="warn" id="gWarn">${esc((r.warnings || []).join(" · ").replace(/-(\d)/g, MINUS + "$1")) || "No warnings today."}</p>
@@ -268,15 +268,14 @@ function renderLive(d) {
   // ---- fact blocks
   const blocks = [];
   const ago = (m) => (m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} h ${m % 60} min ago`);
-  if ((D.breaking || []).length) {
-    blocks.push(`<div class="glass block lift breaking"><span class="label caution">Breaking · high impact</span>
-      ${D.breaking.map((n) => `<a class="big news-hl" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.headline)}</a>
-        <p class="sub">${esc(n.time)} · ${ago(n.age_min)}${n.symbols.length ? " · " + n.symbols.map(esc).join(", ") : ""} · ${esc(n.source)}</p>`).join("")}</div>`);
-  }
+  const breaking = (D.breaking || []).slice(0, 2);
+  const breakingRow = breaking.length ? `<div class="bento" style="margin-top:16px"><div class="glass block lift breaking span-12 ${rv()}"><span class="label caution">Breaking · high impact</span>
+      ${breaking.map((n) => `<a class="news-hl" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.headline)}</a>
+        <p class="sub">${esc(n.time)} · ${ago(n.age_min)}${n.symbols.length ? " · " + n.symbols.map(esc).join(", ") : ""} · ${esc(n.source)}</p>`).join("")}</div></div>` : "";
   if (D.filter) {
     const f = D.filter, note = String(f.note || "").replace(/^since today's open: /, "").replace(/-(\d)/g, MINUS + "$1");
     blocks.push(`<div class="glass block lift"><span class="label">Market filter</span>
-      <span class="big ${f.ok ? "gain" : "loss"}">${f.ok ? "Longs allowed" : "Longs blocked"}</span>
+      <span class="big ${f.ok ? "gain" : D.state === "blocked" ? "" : "loss"}">${f.ok ? "Longs allowed" : D.state === "blocked" ? "SMH and QQQ below their open and VWAP" : "Longs blocked"}</span>
       <p class="sub">${esc(note)} since the open.${f.fade ? " Up on the day but fading since the open: the gap-up-and-fade case the filter is built to catch." : ""}</p></div>`);
   }
   if (D.size_mode === "split" && D.takes.length) {
@@ -295,7 +294,7 @@ function renderLive(d) {
       (f ? `<p class="prose">Versus yesterday's close: SMH ${pctHtml(f.smh_day)}, QQQ ${pctHtml(f.qqq_day)}. The filter looks at the move since the 15:30 open, not the day.</p>` : "") +
       `<p class="prose">Last 10 min = latest 5-min close vs two candles earlier; the newest candle may still be forming.</p>`);
   }
-  const factRow = blocks.length ? `<div class="bento" style="margin-top:16px">${blocks.map((b) => b.replace('class="glass block lift"', `class="glass block lift ${span} ${rv()}"`)).join("")}</div>` : "";
+  const factRow = breakingRow + (blocks.length ? `<div class="bento" style="margin-top:16px">${blocks.map((b) => b.replace('class="glass block lift"', `class="glass block lift ${span} ${rv()}"`)).join("")}</div>` : "");
 
   // ---- news radar
   const nf = d.news || { items: [], error: null };
@@ -303,7 +302,7 @@ function renderLive(d) {
     <div class="section-head"><h2 class="h-section ${rv()}" id="h-news">News radar</h2>
       <p class="prose ${rv()}">Real-time headlines (Benzinga via Alpaca) for your watchlist and the names that move the sector: NVDA, TSM, SMH, QQQ. Sorted by impact words such as CEO change, guidance, investigation, export rules, takeover, downgrade. Visible institutional actions only: analyst calls, stake changes. Last 24 hours.</p></div>
     <div class="glass news-list ${rv()}">${nf.error ? `<p class="empty">${esc(nf.error)}</p>` : !nf.items.length ? '<p class="empty">No headlines in the last 24 hours.</p>' :
-      nf.items.slice(0, 18).map((n) => `<a class="news-row imp-${n.impact}" href="${esc(n.url)}" target="_blank" rel="noopener">
+      nf.items.filter((n) => !breaking.some((b) => b.headline === n.headline)).slice(0, 18).map((n) => `<a class="news-row imp-${n.impact}" href="${esc(n.url)}" target="_blank" rel="noopener">
         <span class="label">${esc(n.time)}${n.age_min >= 600 ? " · " + esc(n.day) : ""}</span>
         <span class="imp">${n.impact === "high" ? "High" : n.impact === "medium" ? "Medium" : ""}</span>
         <span class="hl">${esc(n.headline)}</span>
@@ -333,7 +332,13 @@ function renderLive(d) {
       c.side ? `${c.passed ? "TAKE" : "Skip"} ${c.side} @ ${fmt(c.entry)} · now ${pct(c.now)}` : c.state,
       [c.detail, c.filters ? `sector ${c.filters.sector ? "ok" : "not ok"}${c.filters.breadth != null ? ` · breadth ${c.filters.breadth}/3` : ""}${isNum(c.filters.atr_used) ? ` · ATR used ${fmt(c.filters.atr_used)}` : ""}` : ""].filter(Boolean).join(" · ")])]),
   };
-  const sigCards = fired.map((f) => `<article class="glass lift sig-card ${f.taken ? "taken" : ""} ${rv()}">
+  const quiet = fired.filter((f) => !f.taken);
+  const quietList = quiet.length ? `<div class="glass sig-list ${rv()}"><div class="sig-row sig-head-row"><span class="label">Stock</span><span class="label">Side</span><span class="label">Setup</span><span class="label">Entry</span><span class="label">Now</span><span class="label">Not taken because</span></div>
+    ${quiet.map((f) => `<div class="sig-row"><span class="tick-name">${esc(f.ticker)}</span><span class="side ${f.side === "SHORT" ? "loss" : "gain"}">${f.side}</span>
+      <span class="muted">${esc(f.setup)} · ${esc(f.time)}</span><span class="num">${fmt(f.entry)}</span><span class="${tone(f.now)} num">${pct(f.now)}</span>
+      <span class="muted">${esc((f.blocked || []).join(", ") || "today's plan")}${f.side === "SHORT" && f.filters.sector ? " · market agreed" : ""}</span></div>`).join("")}
+    <p class="sub" style="padding:10px 16px 4px;font-size:12px">Every signal is logged, taken or not, so its result shows up in the Signal log.</p></div>` : "";
+  const sigCards = fired.filter((f) => f.taken).map((f) => `<article class="glass lift sig-card ${f.taken ? "taken" : ""} ${rv()}">
       <div class="sig-head"><span class="sig-tick">${esc(f.ticker)}</span><span class="status-tag ${f.taken ? "gain" : f.side === "SHORT" ? "loss" : "muted"}"><i></i>${f.taken ? `TAKE ${f.side}` : `${f.side} signal`}</span></div>
       <div class="chips"><span class="chip">${esc(f.setup)}</span><span class="chip">${esc(f.time)}</span></div>
       <div class="kv"><div><span class="label">Entry</span><b>${fmt(f.entry)}</b></div><div><span class="label">Now</span><b class="${tone(f.now)}">${pct(f.now)}</b></div>
@@ -343,11 +348,12 @@ function renderLive(d) {
   const signals = `<section class="section" aria-labelledby="h-sig">
     <div class="section-head"><h2 class="h-section ${rv()}" id="h-sig">Signals today</h2>
       <p class="prose ${rv()}"><strong>${esc(cols[0])}:</strong> ${esc(d.setups.rules[cols[0]])} <strong>${esc(cols[1])}:</strong> ${esc(d.setups.rules[cols[1]])}</p></div>
-    <div class="sig-grid">${sigCards || `<div class="glass block ${rv()}"><span class="label">No signal yet</span><span class="big">Nothing has fired today.</span><p class="sub">${esc(nextCheck)}</p></div>`}
+    <div class="sig-grid">${sigCards || `<div class="glass block ${rv()}"><span class="label">${fired.length ? "No trade" : "No signal yet"}</span><span class="big">${fired.length ? "Nothing you would take today." : "Nothing has fired today."}</span><p class="sub">${esc(fired.length ? `${fired.length} signal${fired.length > 1 ? "s" : ""} fired but did not pass your rules; they are listed below.` : nextCheck)}</p></div>`}
       <div class="glass block ${rv()}"><span class="label">What the research says</span>
         ${d.setups.research.length ? `<ul class="list">${d.setups.research.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="sub">Both setups held up only with the market filter and only on the long side.</p>`}
         <p class="sub" style="font-size:13px">Exit: ${esc(d.exit_label.toLowerCase())}, ${d.caption.stop}% stop. Risk budget: ${d.caption.risk_day}% of ${eur(d.caption.capital)} for the whole day. Your ${fmt(d.caption.spread)}% spread setting comes off every result; check T212's live spread before you enter.</p></div>
     </div>
+    ${quietList}
     ${disclose("all-setups", "All setups today, per stock", dataTable(allSetups))}
     ${d.log_error ? `<p class="err">Couldn't update signal_log.csv: ${esc(d.log_error)}</p>` : ""}
   </section>`;
@@ -715,7 +721,34 @@ function route() {
   window.scrollTo({ top: 0 });
 }
 
+// liquid-glass refraction filter: a displacement map that is neutral in the middle and bends at the rim
+function injectRefraction() {
+  if (document.getElementById("lg-defs")) return;
+  const g = (id, x2, y2, a, b) => `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+  const mid = "rgb(128,128,128)";
+  const map = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs>
+    ${g("l", 1, 0, "rgb(0,128,128)", mid)}${g("r", 1, 0, mid, "rgb(255,128,128)")}
+    ${g("t", 0, 1, "rgb(128,0,128)", mid)}${g("b", 0, 1, mid, "rgb(128,255,128)")}</defs>
+    <rect width="100" height="100" fill="${mid}"/>
+    <rect width="9" height="100" fill="url(#l)"/><rect x="91" width="9" height="100" fill="url(#r)"/>
+    <rect width="100" height="9" fill="url(#t)"/><rect y="91" width="100" height="9" fill="url(#b)"/></svg>`;
+  const href = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(map);
+  // blur + bend + saturate all inside one SVG filter: Chrome drops CSS blur() chained after url()
+  const f = (id, scale, blur, sat) => `<filter id="${id}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="${blur}" edgeMode="duplicate" result="soft"/>
+      <feImage href="${href}" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map"/>
+      <feDisplacementMap in="soft" in2="map" scale="${scale}" xChannelSelector="R" yChannelSelector="G" result="bent"/>
+      <feColorMatrix in="bent" type="saturate" values="${sat}"/></filter>`;
+  const wrap = document.createElement("div");
+  wrap.id = "lg-defs";
+  wrap.setAttribute("aria-hidden", "true");
+  wrap.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  wrap.innerHTML = `<svg width="0" height="0"><defs>${f("lg-refract", 26, 12, 1.75)}${f("lg-refract-strong", 40, 4, 1.9)}</defs></svg>`;
+  document.body.prepend(wrap);
+}
+
 async function init() {
+  injectRefraction();
   applyTheme(themeChoice);
   $("#themeBtn").onclick = () => {
     themeChoice = THEMES[(THEMES.indexOf(themeChoice) + 1) % THEMES.length];

@@ -1,0 +1,40 @@
+/* Liquid-glass refraction (user request, 13 Nov 2026). Only on elements that were already glass.
+   The SVG filter #lg-refract (injected by app.js) bends the backdrop at the edges of each surface,
+   strongest at the rim and zero in the middle, like Apple's liquid glass. Chromium supports url()
+   in backdrop-filter; other browsers drop the declaration and keep the plain blur from glass.css. */
+
+.nav,
+.glass, .card, .table-wrap,
+.tab-pill, .drawer {
+  -webkit-backdrop-filter: blur(16px) saturate(175%);
+  backdrop-filter: url(#lg-refract);
+}
+
+/* brighter, thicker rim: light caught by the curved edge */
+.glass, .card, .table-wrap, .drawer {
+  box-shadow: var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 -1px 0 color-mix(in srgb, var(--glass-hi) 40%, transparent),
+    inset 1px 0 0 color-mix(in srgb, var(--glass-hi) 35%, transparent),
+    inset -1px 0 0 color-mix(in srgb, var(--glass-hi) 35%, transparent);
+}
+.lift:hover {
+  box-shadow: var(--glass-shadow-hover),
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 -1px 0 color-mix(in srgb, var(--glass-hi) 45%, transparent),
+    inset 1px 0 0 color-mix(in srgb, var(--glass-hi) 40%, transparent),
+    inset -1px 0 0 color-mix(in srgb, var(--glass-hi) 40%, transparent);
+}
+
+/* the sliding tab pill is the most "liquid" piece: a little more bend, a little more shine */
+.tab-pill {
+  backdrop-filter: url(#lg-refract-strong);
+  box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 color-mix(in srgb, var(--glass-hi) 50%, transparent),
+    0 4px 14px rgba(0, 0, 0, .10);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .nav, .glass, .card, .table-wrap, .tab-pill, .drawer {
+    -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface);
+  }
+}
