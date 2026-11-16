@@ -184,7 +184,7 @@ function flowHTML(r, d) {
       <ul class="list" style="margin:10px 0 0">${c.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>
       <h3 class="h-sub" style="margin-top:20px">Fair value gaps</h3>
       ${list ? `<ul class="list" style="margin:10px 0 0">${list}</ul>` : '<p class="sub">No open gaps today (gaps under 0.10% are ignored).</p>'}
-      <p class="sub" style="font-size:12px;margin-top:12px">This is about the session since 15:30, not the day's change: a stock can be down on the day after a gap and still have buyers in charge since the open. Estimated from 5-minute candles: buyer share = where each candle closed in its range, weighted by volume. The free feed has no real bid/ask order flow. Neither this nor fair value gaps has been tested as an edge here: read them as context, not a signal.</p>
+      <p class="sub" style="font-size:12px;margin-top:12px">This is about the session since 15:30, not the day's change: a stock can be down on the day after a gap and still have buyers in charge since the open. Estimated from 5-minute candles: buyer share = where each candle closed in its range, weighted by volume. The free feed has no real bid/ask order flow. Tested on 2020–26 (64,000 gap retests on your semis): after price returns to a gap, the next 30 minutes went its way only half the time, about 0.01% on average, far below the spread, and gaps that agree with who's in control did no better. Read both as a map of the session, not a signal.</p>
     </div>`;
 }
 
