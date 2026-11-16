@@ -142,8 +142,11 @@ function candles(c, prev, marks, fvgs) {
   }
   const vw = c.vwap.map((v, i) => (isNum(v) ? `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}` : "")).join("").replace(/^L/, "M");
   const gaps = (fvgs || []).filter((f) => isNum(f.lo) && isNum(f.hi) && f.lo >= lo && f.hi <= hi).map((f) => {
-    const x0 = x(Math.max(0, f.bar)) - step / 2, y0 = y(f.hi), y1 = y(f.lo);
-    return `<rect class="fvg ${f.kind}" x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${(W - R - x0).toFixed(1)}" height="${Math.max(1.5, y1 - y0).toFixed(1)}"><title>${f.kind === "bull" ? "Bullish" : "Bearish"} fair value gap ${fmt(f.lo)}–${fmt(f.hi)} (${f.time}), ${f.filled}% filled</title></rect>`;
+    const x0 = Math.min(x(Math.max(0, f.bar)) - step / 2, W - R - 36), y0 = y(f.hi), y1 = Math.max(y(f.lo), y0 + 3), w = W - R - x0;
+    return `<g class="fvg ${f.kind}"><title>${f.kind === "bull" ? "Bullish" : "Bearish"} fair value gap ${fmt(f.lo)}–${fmt(f.hi)} (formed ${f.time}), ${f.filled}% filled</title>
+      <rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${w.toFixed(1)}" height="${(y1 - y0).toFixed(1)}"/>
+      <line x1="${x0.toFixed(1)}" x2="${(W - R).toFixed(1)}" y1="${y0.toFixed(1)}" y2="${y0.toFixed(1)}"/><line x1="${x0.toFixed(1)}" x2="${(W - R).toFixed(1)}" y1="${y1.toFixed(1)}" y2="${y1.toFixed(1)}"/>
+      <text x="${(x0 + 4).toFixed(1)}" y="${(y0 - 4).toFixed(1)}">FVG</text></g>`;
   }).join("");
   const pv = isNum(prev) ? `<line class="prev" x1="${L}" x2="${W - R}" y1="${y(prev).toFixed(1)}" y2="${y(prev).toFixed(1)}"/>` : "";
   let labels = "";
