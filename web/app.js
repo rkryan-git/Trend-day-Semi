@@ -175,11 +175,11 @@ function flowHTML(r) {
   const list = [g(inside, "Price is inside a"), g(above, "Nearest above:"), g(below, "Nearest below:")].join("");
   return `<div class="flow">
       <div class="flow-head"><h3 class="h-sub">Who's in control</h3><span class="status-tag ${c.side > 0 ? "gain" : c.side < 0 ? "loss" : ""}"><i></i>${esc(c.who)}</span></div>
-      ${bar("Today", c.buy_today)}${bar("Last 30 min", c.buy_30)}
+      ${bar("Since open", c.buy_today)}${bar("Last 30 min", c.buy_30)}
       <ul class="list" style="margin:10px 0 0">${c.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>
       <h3 class="h-sub" style="margin-top:20px">Fair value gaps</h3>
       ${list ? `<ul class="list" style="margin:10px 0 0">${list}</ul>` : '<p class="sub">No open gaps today (gaps under 0.10% are ignored).</p>'}
-      <p class="sub" style="font-size:12px;margin-top:12px">Estimated from 5-minute candles: buyer share = where each candle closed in its range, weighted by volume. The free feed has no real bid/ask order flow. Neither this nor fair value gaps has been tested as an edge here: read them as context, not a signal.</p>
+      <p class="sub" style="font-size:12px;margin-top:12px">This is about the session since 15:30, not the day's change: a stock can be down on the day after a gap and still have buyers in charge since the open. Estimated from 5-minute candles: buyer share = where each candle closed in its range, weighted by volume. The free feed has no real bid/ask order flow. Neither this nor fair value gaps has been tested as an edge here: read them as context, not a signal.</p>
     </div>`;
 }
 
@@ -467,7 +467,7 @@ function renderLive(d) {
       <span class="top"><span class="who">${logo(r.ticker)}<span><span class="tick-name">${esc(r.ticker)}</span><span class="co">${esc(coName(r.ticker))}</span></span></span>${deltaPill(r.chg)}</span>
       <span class="px" data-count="${r.last}" data-fmt="n2">${fmt(r.last)}</span>
       ${spark(r.spark, r.prev_close, r.chg, brand(r.ticker), r.spark_t)}
-      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}${r.control ? `<span class="chip ctl ${r.control.side > 0 ? "gain" : r.control.side < 0 ? "loss" : ""}">${r.control.side > 0 ? "▲ Buyers" : r.control.side < 0 ? "▼ Sellers" : "Tug of war"}</span>` : ""}</span>
+      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}${r.control ? `<span class="chip ctl ${r.control.side > 0 ? "gain" : r.control.side < 0 ? "loss" : ""}">${r.control.side > 0 ? (r.control.strong ? "▲ Buyers" : "▲ Leaning buyers") : r.control.side < 0 ? (r.control.strong ? "▼ Sellers" : "▼ Leaning sellers") : "Tug of war"} since open</span>` : ""}</span>
       <span class="verdict">${esc(r.verdict)}${isNum(r.score) ? ` · score ${fmt(r.score, 0).replace("-", MINUS)}` : ""}</span></button>`;
     const panel = open ? `<div class="glass wl-panel" id="wl-panel">
         <div><div class="block-title" style="margin-bottom:12px"><h3 class="h-sub">${esc(r.ticker)} · 5-minute chart, your time</h3>

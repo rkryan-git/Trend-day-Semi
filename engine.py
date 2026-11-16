@@ -285,8 +285,8 @@ def _pressure(df) -> float | None:
     return float((clv * v).sum() / v.sum()) if v.sum() > 0 else None
 
 
-def control(df, vw) -> dict | None:
-    """Buyers vs sellers today and over the last 30 minutes."""
+def control(df, vw, gap=None) -> dict | None:
+    """Buyers vs sellers since the open and over the last 30 minutes (not vs yesterday's close)."""
     if df is None or len(df) < 3:
         return None
     last = float(df["Close"].iloc[-1])
@@ -302,12 +302,17 @@ def control(df, vw) -> dict | None:
              0 if buy_30 is None else (1 if buy_30 >= 55 else -1 if buy_30 <= 45 else 0),
              1 if hl >= 2 else -1 if hl <= -2 else 0]
     score = sum(votes)
-    who = "Buyers in control" if score >= 2 else "Sellers in control" if score <= -2 else "Tug of war"
+    side = 1 if score >= 2 else -1 if score <= -2 else 0
+    who = ("Buyers in control" if score >= 3 else "Leaning buyers" if score == 2 else
+           "Sellers in control" if score <= -3 else "Leaning sellers" if score == -2 else "Tug of war")
+    who += " since the open"
+    if gap is not None and abs(gap) >= 2:
+        who += f", after a {gap:+.1f}% gap {'up' if gap > 0 else 'down'}".replace("-", "−")
     why = [f"Price {'above' if above else 'below'} VWAP" + (f" ({(last / vwap_now - 1) * 100:+.2f}%)" if vwap_now else ""),
-           f"Today {buy_all}% of volume leaned to buyers" if buy_all is not None else "No volume yet",
+           f"Since the open {buy_all}% of volume leaned to buyers" if buy_all is not None else "No volume yet",
            f"Last 30 min {buy_30}% buyers" if buy_30 is not None else "",
            "Higher lows in the last 30 min" if hl >= 2 else "Lower highs in the last 30 min" if hl <= -2 else "No clear swing in the last 30 min"]
-    return {"who": who, "side": 1 if score >= 2 else -1 if score <= -2 else 0, "buy_today": buy_all, "buy_30": buy_30,
+    return {"who": who, "side": side, "strong": abs(score) >= 3, "buy_today": buy_all, "buy_30": buy_30,
             "why": [w for w in why if w]}
 
 
@@ -578,7 +583,7 @@ def live(s: Settings) -> dict:
                         "l": [clean(x) for x in sess_df["Low"]], "c": [clean(x) for x in sess_df["Close"]],
                         "vwap": [clean(x) for x in vw]},
             "marks": detail_marks,
-            "control": control(sess_df, vw),
+            "control": control(sess_df, vw, sn.gap),
             "fvg": fair_value_gaps(sess_df),
         })
     out["watchlist"] = {"rows": wl,
