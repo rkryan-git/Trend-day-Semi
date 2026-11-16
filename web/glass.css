@@ -462,21 +462,21 @@ button.lift:hover, a.lift:hover, .lift[role="button"]:hover { transform: transla
 .news-fold:not([open]) { padding-top: 48px; }
 @media (max-width: 1500px) { [data-theme="light"] .tabs a { padding-left: 9px; padding-right: 9px; letter-spacing: .02em; } }
 
-/* chart loader: appears only for slow loads (see loader.js) */
-.chart-loader { position: fixed; z-index: 60; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.96);
-  display: grid; justify-items: center; gap: 12px; padding: 22px 28px 18px; border-radius: 18px;
-  background: var(--nav-glass, var(--surface)); border: 1px solid var(--line);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .35); opacity: 0; pointer-events: none;
-  transition: opacity .3s ease, transform .3s ease; }
-.chart-loader.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-.chart-loader svg { width: 132px; height: 62px; overflow: visible; }
-.chart-loader path { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
-.chart-loader .cl-base { stroke: var(--ink); opacity: .9; }
-.chart-loader .cl-done { stroke: var(--gain); }
-.chart-loader .cl-area { stroke: none; }
-.chart-loader.done .cl-done { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gain) 55%, transparent)); }
-.chart-loader .cl-cap { font-size: 12px; color: var(--muted); }
-@media (prefers-reduced-motion: reduce) { .chart-loader { transition: opacity .2s linear; transform: translate(-50%, -50%); } }
+/* chart loader (loader.js): appears only for slow loads; no card, no glow, no gradient */
+.chart-loader { position: fixed; z-index: 60; left: 50%; transform: translate(-50%, 8px); display: grid; justify-items: start; gap: 14px;
+  opacity: 0; pointer-events: none; transition: opacity .26s ease-out, transform .26s ease-out; }
+.chart-loader.on { opacity: 1; transform: translate(-50%, 0); }
+.chart-loader svg { width: 176px; height: 92px; overflow: visible; }
+.chart-loader .cl-axis { stroke: var(--line); stroke-width: 1; }
+.chart-loader .cl-empty { fill: var(--ink); opacity: .04; }
+.chart-loader .cl-level { fill: var(--gain); opacity: .42; }
+.chart-loader .cl-line { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.chart-loader .cl-read { display: flex; align-items: baseline; gap: 12px; }
+.chart-loader .cl-pct { font-family: var(--body); font-weight: 500; font-size: 30px; letter-spacing: -0.03em; line-height: 1;
+  color: var(--gain); font-variant-numeric: tabular-nums; min-width: 3.4em; }
+.chart-loader .cl-cap { font-size: 13px; color: var(--muted); }
+.cl-hold .page:not([hidden]) { opacity: 0; }
+.page { transition: opacity .26s ease-out; }
+@media (prefers-reduced-motion: reduce) { .chart-loader, .chart-loader.on { transition: opacity .2s linear; transform: translate(-50%, 0); } .page { transition: none; } }
 
 .cl-active .page p.loading:not(.err) { visibility: hidden; }

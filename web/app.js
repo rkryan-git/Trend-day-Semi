@@ -629,7 +629,7 @@ function renderBacktest() {
        <button class="btn btn-ghost" type="button" id="runTrend">Run trend-score backtest</button></div><div id="trendOut"></div>`)}</section>`;
   restoreOpen(p);
   $("#runBt").onclick = async (e) => {
-    e.target.disabled = true; $("#btMsg").textContent = "Downloading 60 days of 5-minute data…";
+    e.target.disabled = true; $("#btMsg").innerHTML = '<p class="loading">Downloading 60 days of 5-minute data…</p>';
     try { btCache = await api("/api/backtest?" + qs()); showBacktest(btCache); $("#btMsg").textContent = ""; }
     catch (err) { $("#btMsg").innerHTML = `<span class="err">${esc(err.message)}</span>`; }
     e.target.disabled = false;
@@ -686,7 +686,7 @@ function renderLong() {
   }));
   $("#runLong").onclick = async (e) => {
     if (!sel.size) { $("#longMsg").textContent = "Pick at least one stock."; return; }
-    e.target.disabled = true; $("#longMsg").textContent = "Downloading about 2 years of daily and hourly data…";
+    e.target.disabled = true; $("#longMsg").innerHTML = '<p class="loading">Downloading about 2 years of daily and hourly data…</p>';
     try { longCache = await api("/api/long?stocks=" + encodeURIComponent([...sel].join(","))); showLong(longCache); $("#longMsg").textContent = ""; }
     catch (err) { $("#longMsg").innerHTML = `<span class="err">${esc(err.message)}</span>`; }
     e.target.disabled = false;
