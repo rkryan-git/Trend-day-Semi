@@ -159,9 +159,11 @@ function candles(c, prev, marks, fvgs) {
 }
 
 // who is in control + fair value gaps (opened watchlist stock)
-function flowHTML(r) {
+function flowHTML(r, d) {
   const c = r.control;
   if (!c) return "";
+  const live = d && d.phase === "open", sess = d && d.watchlist && d.watchlist.session;
+  const when = live ? "" : `<p class="sub" style="margin:0 0 10px"><b>Market not open: this is the last session${sess ? ` (${esc(sess)})` : ""}.</b> It updates from 15:30 your time.</p>`;
   const bar = (label, v) => isNum(v) ? `<div class="ctl-row"><span class="label">${label}</span>
       <div class="ctl-bar" role="img" aria-label="${label}: ${v}% buyers, ${100 - v}% sellers"><i class="b" style="width:${v}%"></i><i class="s" style="width:${100 - v}%"></i></div>
       <span class="ctl-num"><b class="gain">${v}%</b> / <b class="loss">${100 - v}%</b></span></div>` : "";
@@ -174,7 +176,7 @@ function flowHTML(r) {
       <span class="muted">· formed ${esc(f.time)} · ${f.filled}% filled · ${pct(((f.kind === "bull" ? f.hi : f.lo) / last - 1) * 100, 2)} away</span></li>` : "";
   const list = [g(inside, "Price is inside a"), g(above, "Nearest above:"), g(below, "Nearest below:")].join("");
   return `<div class="flow">
-      <div class="flow-head"><h3 class="h-sub">Who's in control</h3><span class="status-tag ${c.side > 0 ? "gain" : c.side < 0 ? "loss" : ""}"><i></i>${esc(c.who)}</span></div>
+      ${when}<div class="flow-head"><h3 class="h-sub">Who's in control${live ? "" : " · last session"}</h3><span class="status-tag ${c.side > 0 ? "gain" : c.side < 0 ? "loss" : ""}"><i></i>${esc(c.who)}</span></div>
       ${bar("Since open", c.buy_today)}${bar("Last 30 min", c.buy_30)}
       <ul class="list" style="margin:10px 0 0">${c.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>
       <h3 class="h-sub" style="margin-top:20px">Fair value gaps</h3>
@@ -467,14 +469,14 @@ function renderLive(d) {
       <span class="top"><span class="who">${logo(r.ticker)}<span><span class="tick-name">${esc(r.ticker)}</span><span class="co">${esc(coName(r.ticker))}</span></span></span>${deltaPill(r.chg)}</span>
       <span class="px" data-count="${r.last}" data-fmt="n2">${fmt(r.last)}</span>
       ${spark(r.spark, r.prev_close, r.chg, brand(r.ticker), r.spark_t)}
-      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}${r.control ? `<span class="chip ctl ${r.control.side > 0 ? "gain" : r.control.side < 0 ? "loss" : ""}">${r.control.side > 0 ? (r.control.strong ? "▲ Buyers" : "▲ Leaning buyers") : r.control.side < 0 ? (r.control.strong ? "▼ Sellers" : "▼ Leaning sellers") : "Tug of war"} since open</span>` : ""}</span>
+      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}${r.control ? `<span class="chip ctl ${r.control.side > 0 ? "gain" : r.control.side < 0 ? "loss" : ""}">${r.control.side > 0 ? (r.control.strong ? "▲ Buyers" : "▲ Leaning buyers") : r.control.side < 0 ? (r.control.strong ? "▼ Sellers" : "▼ Leaning sellers") : "Tug of war"} since open${d.phase === "open" ? "" : " · last session"}</span>` : ""}</span>
       <span class="verdict">${esc(r.verdict)}${isNum(r.score) ? ` · score ${fmt(r.score, 0).replace("-", MINUS)}` : ""}</span></button>`;
     const panel = open ? `<div class="glass wl-panel" id="wl-panel">
         <div><div class="block-title" style="margin-bottom:12px"><h3 class="h-sub">${esc(r.ticker)} · 5-minute chart, your time</h3>
           <span class="muted" style="font-size:13px">First 30 min ${pct(r.first30)} · range ${esc(r.or)}${isNum(r.range_atr) ? ` · ${fmt(r.range_atr)}× ATR` : ""}</span></div>
           ${candles(r.candles, r.prev_close, r.marks, r.fvg)}
           <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span><i class="fvg-key bull"></i>Gap up (bullish FVG)</span><span><i class="fvg-key bear"></i>Gap down (bearish FVG)</span><span>▲ ▼ setup entries</span></div>
-          ${flowHTML(r)}</div>
+          ${flowHTML(r, d)}</div>
         <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px">${(r.reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
           <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="${esc(r.ticker)}" style="margin-top:12px"><li class="muted">Loading…</li></ul></div></div>` : "";
     return card + panel;
