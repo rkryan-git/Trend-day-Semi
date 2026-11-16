@@ -8,52 +8,72 @@
 "use strict";
 (() => {
   const SHOW_AFTER = 700, MIN_SHOWN = 600, FILL_MS = 420, HOLD_MS = 220, FADE_MS = 260, TAU = 4500;
-  // chart icon: rising, small zigzags (viewBox 0 0 160 84; baseline at y=80)
-  const PTS = [[4, 72], [22, 60], [34, 65], [52, 47], [64, 53], [84, 33], [96, 39], [116, 20], [128, 25], [156, 6]];
-  const LINE = PTS.map(([x, y], i) => `${i ? "L" : "M"}${x},${y}`).join("");
-  const BUCKET = `${LINE}L156,80L4,80Z`;
-  const TOP = 6, BOTTOM = 80;
+  // chart: rising with small zigzags, in a 100 x 100 plot (the reference's shape, flattened liquid)
+  // the owner's drawing: only its turning points, joined by straight lines
+  const LINE = "M0.0,92.0 L8.0,76.4 L23.1,58.2 L35.4,65.9 L68.9,30.6 L77.3,41.0 L100.0,8.0";
+  const AREA = `${LINE} L100,100 L0,100 Z`;
+  const PUMP_MS = 650, SURGE_MS = 420;
+  const NAME_UNUSED = (c) => (/exit/i.test(c) ? "EXITS" : /backtest|60 days/i.test(c) ? "BACKTEST" : /2 years|hourly/i.test(c) ? "2Y CHECK"
+    : /invest|trend/i.test(c) ? "INVEST" : /live/i.test(c) ? "LIVE" : /log/i.test(c) ? "LOG" : "RADAR");
 
   let el = null, start = 0, shownAt = 0, showTimer = null, raf = 0, finishing = false, active = false, p = 0;
+  let from = 0, goal = 0, surgeAt = 0, lastPump = 0;
 
   function build(caption, anchor) {
+    const cap = (caption || "Loading").replace(/[<>&]/g, "");
     el = document.createElement("div");
-    el.className = "chart-loader";
+    el.className = "glass chart-loader";
     el.setAttribute("role", "progressbar");
-    el.setAttribute("aria-label", caption || "Loading");
+    el.setAttribute("aria-label", cap);
     el.setAttribute("aria-valuemin", "0"); el.setAttribute("aria-valuemax", "100");
-    el.innerHTML = `<svg viewBox="0 0 160 84" aria-hidden="true">
-        <defs><clipPath id="clBucket"><path d="${BUCKET}"/></clipPath></defs>
-        <line class="cl-axis" x1="4" x2="156" y1="80" y2="80"/>
-        <path class="cl-empty" d="${BUCKET}"/>
-        <rect class="cl-level" clip-path="url(#clBucket)" x="0" y="${BOTTOM}" width="160" height="0"/>
-        <path class="cl-line" d="${LINE}"/>
-      </svg>
-      <div class="cl-read"><span class="cl-pct">+0%</span><span class="cl-cap">${(caption || "Loading").replace(/[<>&]/g, "")}</span></div>`;
+    el.innerHTML = `<div class="cl-plot">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <clipPath id="clShown"><rect x="0" y="-5" width="0" height="110"/></clipPath>
+            <linearGradient id="clWater" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--gain)" stop-opacity=".95"/><stop offset="1" stop-color="var(--gain)" stop-opacity=".18"/></linearGradient>
+          </defs>
+          <g class="cl-grid"><line x1="0" x2="100" y1="25" y2="25"/><line x1="0" x2="100" y1="50" y2="50"/><line x1="0" x2="100" y1="75" y2="75"/>
+            <line y1="0" y2="100" x1="25" x2="25"/><line y1="0" y2="100" x1="50" x2="50"/><line y1="0" y2="100" x1="75" x2="75"/></g>
+          <path class="cl-ghost" d="${AREA}"/>
+          <g clip-path="url(#clShown)"><path class="cl-water" d="${AREA}" fill="url(#clWater)"/><path class="cl-edge" d="${LINE}"/></g>
+          <line class="cl-front" x1="0" x2="0" y1="0" y2="100"/>
+        </svg>
+      </div>
+      <div class="cl-read"><span class="cl-pct">+0%</span><span class="cl-cap">${cap}</span></div>`;
     const r = anchor && anchor.isConnected ? anchor.getBoundingClientRect() : null;
-    el.style.top = `${Math.round(Math.max(96, Math.min(window.innerHeight - 190, r ? r.top + 8 : window.innerHeight * 0.35)))}px`;
+    el.style.top = `${Math.round(Math.max(88, Math.min(window.innerHeight - 330, r ? r.top : window.innerHeight * 0.2)))}px`;
     document.body.appendChild(el);
     document.body.classList.add("cl-active");
     requestAnimationFrame(() => requestAnimationFrame(() => el && el.classList.add("on")));
   }
   function setP(v) {
-    p = Math.min(1, v);
+    p = Math.min(1, Math.max(0, v));
     if (!el) return;
-    const y = BOTTOM - p * (BOTTOM - TOP);
-    const lv = el.querySelector(".cl-level");
-    lv.setAttribute("y", y.toFixed(2)); lv.setAttribute("height", (BOTTOM - y).toFixed(2));
+    const w = (p * 100).toFixed(2);
+    el.querySelector("#clShown rect").setAttribute("width", w);
+    const f = el.querySelector(".cl-front");
+    f.setAttribute("x1", w); f.setAttribute("x2", w);
     const n = Math.round(p * 100);
     el.querySelector(".cl-pct").textContent = `+${n}%`;
     el.setAttribute("aria-valuenow", String(n));
   }
+  // pump: every PUMP_MS the target jumps to where the load "should" be, and the fill surges there and settles
   function tick() {
     if (!el || finishing) return;
-    setP(0.92 * (1 - Math.exp(-(performance.now() - start) / TAU)));
+    const now = performance.now();
+    if (now - lastPump >= PUMP_MS) {
+      lastPump = now; from = p; surgeAt = now;
+      goal = 0.92 * (1 - Math.exp(-(now - start) / TAU));
+      el.classList.remove("surge"); void el.offsetWidth; el.classList.add("surge");
+    }
+    const k = Math.min(1, (now - surgeAt) / SURGE_MS), e = 1 - Math.pow(1 - k, 4);
+    setP(from + (goal - from) * e);
     raf = requestAnimationFrame(tick);
   }
   function begin(caption, anchor) {
     if (active) return;
-    active = true; finishing = false; p = 0; start = performance.now();
+    active = true; finishing = false; p = 0; from = 0; goal = 0; lastPump = 0; start = performance.now();
     showTimer = setTimeout(() => { if (!active) return; build(caption, anchor); shownAt = performance.now(); tick(); }, SHOW_AFTER);
   }
   function end() {
