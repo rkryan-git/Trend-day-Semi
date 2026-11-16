@@ -490,3 +490,17 @@ button.lift:hover, a.lift:hover, .lift[role="button"]:hover { transform: transla
 @media (prefers-reduced-motion: reduce) { .chart-loader, .chart-loader.on { transition: opacity .2s linear; transform: translate(-50%, 0); } .page { transition: none; } }
 
 .cl-active .page p.loading:not(.err) { visibility: hidden; }
+
+/* who is in control + fair value gaps */
+.candles .fvg.bull { fill: var(--gain); opacity: .14; }
+.candles .fvg.bear { fill: var(--loss); opacity: .14; }
+.legend .fvg-key { display: inline-block; width: 14px; height: 9px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend .fvg-key.bull { background: color-mix(in srgb, var(--gain) 35%, transparent); }
+.legend .fvg-key.bear { background: color-mix(in srgb, var(--loss) 35%, transparent); }
+.flow { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.flow-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.ctl-row { display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 12px; margin: 8px 0; }
+.ctl-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); }
+.ctl-bar .b { background: var(--gain); } .ctl-bar .s { background: var(--loss); opacity: .85; }
+.ctl-num { font-size: 13px; font-variant-numeric: tabular-nums; }
+.chip.ctl.gain { color: var(--gain); } .chip.ctl.loss { color: var(--loss); }

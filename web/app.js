@@ -119,7 +119,7 @@ function gauge(chance, level, rates, mini = false, id = "") {
     ${ticks}</svg>`;
 }
 
-function candles(c, prev, marks) {
+function candles(c, prev, marks, fvgs) {
   const n = c.c.length;
   if (!n) return '<p class="empty">No intraday data yet.</p>';
   const W = 720, H = 280, L = 8, R = 52, T = 12, B = 22;
@@ -141,6 +141,10 @@ function candles(c, prev, marks) {
     body += `<rect class="${cls}" x="${(x(i) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, bot - top).toFixed(1)}" rx="1"/>`;
   }
   const vw = c.vwap.map((v, i) => (isNum(v) ? `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}` : "")).join("").replace(/^L/, "M");
+  const gaps = (fvgs || []).filter((f) => isNum(f.lo) && isNum(f.hi) && f.lo >= lo && f.hi <= hi).map((f) => {
+    const x0 = x(Math.max(0, f.bar)) - step / 2, y0 = y(f.hi), y1 = y(f.lo);
+    return `<rect class="fvg ${f.kind}" x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${(W - R - x0).toFixed(1)}" height="${Math.max(1.5, y1 - y0).toFixed(1)}"><title>${f.kind === "bull" ? "Bullish" : "Bearish"} fair value gap ${fmt(f.lo)}–${fmt(f.hi)} (${f.time}), ${f.filled}% filled</title></rect>`;
+  }).join("");
   const pv = isNum(prev) ? `<line class="prev" x1="${L}" x2="${W - R}" y1="${y(prev).toFixed(1)}" y2="${y(prev).toFixed(1)}"/>` : "";
   let labels = "";
   c.t.forEach((t, i) => { const hm = String(t).slice(-5); if (hm.endsWith(":30") || hm.endsWith(":00")) { if (i % Math.ceil(n / 7) === 0) labels += `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${hm}</text>`; } });
@@ -151,7 +155,32 @@ function candles(c, prev, marks) {
     return `<polygon class="mark" points="${p}"><title>${esc(m.setup)} ${m.side} at ${fmt(m.entry)}</title></polygon>`;
   }).join("");
   const tip = ` data-v='${JSON.stringify(c.c)}' data-t='${JSON.stringify(c.t)}' data-lo="${lo}" data-hi="${hi}" data-h="${H}" data-pt="${T}" data-pb="${B}" data-x0="${L}" data-x1="${W - R}" data-w="${W}"${isNum(prev) ? ` data-ref="${prev}" data-ref-label="vs yesterday's close"` : ""}`;
-  return `<svg class="candles has-tip" viewBox="0 0 ${W} ${H}" role="img" aria-label="5-minute candles with VWAP and yesterday's close"${tip}>${g}${pv}${body}<path class="vwap" d="${vw}"/>${mk}${labels}</svg>`;
+  return `<svg class="candles has-tip" viewBox="0 0 ${W} ${H}" role="img" aria-label="5-minute candles with VWAP and yesterday's close"${tip}>${g}${gaps}${pv}${body}<path class="vwap" d="${vw}"/>${mk}${labels}</svg>`;
+}
+
+// who is in control + fair value gaps (opened watchlist stock)
+function flowHTML(r) {
+  const c = r.control;
+  if (!c) return "";
+  const bar = (label, v) => isNum(v) ? `<div class="ctl-row"><span class="label">${label}</span>
+      <div class="ctl-bar" role="img" aria-label="${label}: ${v}% buyers, ${100 - v}% sellers"><i class="b" style="width:${v}%"></i><i class="s" style="width:${100 - v}%"></i></div>
+      <span class="ctl-num"><b class="gain">${v}%</b> / <b class="loss">${100 - v}%</b></span></div>` : "";
+  const last = r.last;
+  const gaps = (r.fvg || []).slice();
+  const above = gaps.filter((f) => f.lo > last).sort((a, b) => a.lo - b.lo)[0];
+  const below = gaps.filter((f) => f.hi < last).sort((a, b) => b.hi - a.hi)[0];
+  const inside = gaps.find((f) => f.lo <= last && f.hi >= last);
+  const g = (f, where) => f ? `<li><b>${where}</b> ${f.kind === "bull" ? "bullish" : "bearish"} gap ${fmt(f.lo)}–${fmt(f.hi)}
+      <span class="muted">· formed ${esc(f.time)} · ${f.filled}% filled · ${pct(((f.kind === "bull" ? f.hi : f.lo) / last - 1) * 100, 2)} away</span></li>` : "";
+  const list = [g(inside, "Price is inside a"), g(above, "Nearest above:"), g(below, "Nearest below:")].join("");
+  return `<div class="flow">
+      <div class="flow-head"><h3 class="h-sub">Who's in control</h3><span class="status-tag ${c.side > 0 ? "gain" : c.side < 0 ? "loss" : ""}"><i></i>${esc(c.who)}</span></div>
+      ${bar("Today", c.buy_today)}${bar("Last 30 min", c.buy_30)}
+      <ul class="list" style="margin:10px 0 0">${c.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>
+      <h3 class="h-sub" style="margin-top:20px">Fair value gaps</h3>
+      ${list ? `<ul class="list" style="margin:10px 0 0">${list}</ul>` : '<p class="sub">No open gaps today (gaps under 0.10% are ignored).</p>'}
+      <p class="sub" style="font-size:12px;margin-top:12px">Estimated from 5-minute candles: buyer share = where each candle closed in its range, weighted by volume. The free feed has no real bid/ask order flow. Neither this nor fair value gaps has been tested as an edge here: read them as context, not a signal.</p>
+    </div>`;
 }
 
 // before / after bars. rows: [{label, without:{v,n}, with:{v,n}}]
@@ -438,13 +467,14 @@ function renderLive(d) {
       <span class="top"><span class="who">${logo(r.ticker)}<span><span class="tick-name">${esc(r.ticker)}</span><span class="co">${esc(coName(r.ticker))}</span></span></span>${deltaPill(r.chg)}</span>
       <span class="px" data-count="${r.last}" data-fmt="n2">${fmt(r.last)}</span>
       ${spark(r.spark, r.prev_close, r.chg, brand(r.ticker), r.spark_t)}
-      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}</span>
+      <span class="chips"><span class="chip">${isNum(r.pre_chg) ? "Pre-mkt " + pct(r.pre_chg) : "Gap " + pct(r.gap)}</span><span class="chip">VWAP ${pct(r.vwap_dist)}</span>${isNum(r.rvol) ? `<span class="chip">RVOL ${fmt(r.rvol)}</span>` : ""}${r.control ? `<span class="chip ctl ${r.control.side > 0 ? "gain" : r.control.side < 0 ? "loss" : ""}">${r.control.side > 0 ? "▲ Buyers" : r.control.side < 0 ? "▼ Sellers" : "Tug of war"}</span>` : ""}</span>
       <span class="verdict">${esc(r.verdict)}${isNum(r.score) ? ` · score ${fmt(r.score, 0).replace("-", MINUS)}` : ""}</span></button>`;
     const panel = open ? `<div class="glass wl-panel" id="wl-panel">
         <div><div class="block-title" style="margin-bottom:12px"><h3 class="h-sub">${esc(r.ticker)} · 5-minute chart, your time</h3>
           <span class="muted" style="font-size:13px">First 30 min ${pct(r.first30)} · range ${esc(r.or)}${isNum(r.range_atr) ? ` · ${fmt(r.range_atr)}× ATR` : ""}</span></div>
-          ${candles(r.candles, r.prev_close, r.marks)}
-          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span>▲ ▼ setup entries</span></div></div>
+          ${candles(r.candles, r.prev_close, r.marks, r.fvg)}
+          <div class="legend"><span><i></i>VWAP</span><span><i class="prev"></i>Yesterday's close</span><span><i class="fvg-key bull"></i>Gap up (bullish FVG)</span><span><i class="fvg-key bear"></i>Gap down (bearish FVG)</span><span>▲ ▼ setup entries</span></div>
+          ${flowHTML(r)}</div>
         <div><h3 class="h-sub">Why the score</h3><ul class="list" style="margin:12px 0 24px">${(r.reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
           <h3 class="h-sub">Headlines</h3><ul class="list news" data-news="${esc(r.ticker)}" style="margin-top:12px"><li class="muted">Loading…</li></ul></div></div>` : "";
     return card + panel;

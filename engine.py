@@ -270,6 +270,80 @@ def series(session: pd.DataFrame | None, n: int = 80) -> list:
 # ----------------------------------------------------------------------------
 # Live
 # ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# Who is in control (buyers / sellers) and fair value gaps, from today's 5-minute candles.
+# Estimates only: the free feed has candles, not the real bid/ask order flow. Not tested as an edge.
+# ----------------------------------------------------------------------------
+FVG_MIN_PCT = 0.10          # ignore gaps smaller than 0.10% of price (noise on 5-minute bars)
+
+
+def _pressure(df) -> float | None:
+    """Volume-weighted close location: +1 = every bar closed at its high, -1 = at its low."""
+    rng = (df["High"] - df["Low"]).replace(0, np.nan)
+    clv = (((df["Close"] - df["Low"]) - (df["High"] - df["Close"])) / rng).fillna(0)
+    v = df["Volume"].fillna(0)
+    return float((clv * v).sum() / v.sum()) if v.sum() > 0 else None
+
+
+def control(df, vw) -> dict | None:
+    """Buyers vs sellers today and over the last 30 minutes."""
+    if df is None or len(df) < 3:
+        return None
+    last = float(df["Close"].iloc[-1])
+    vwap_now = float(vw.iloc[-1]) if len(vw) and pd.notna(vw.iloc[-1]) else None
+    p_all, p_30 = _pressure(df), _pressure(df.iloc[-6:])
+    buy_all = None if p_all is None else round((1 + p_all) / 2 * 100)
+    buy_30 = None if p_30 is None else round((1 + p_30) / 2 * 100)
+    rec = df.iloc[-6:]
+    hl = int((rec["Low"].diff().dropna() > 0).sum()) - int((rec["High"].diff().dropna() < 0).sum())
+    above = vwap_now is not None and last > vwap_now
+    votes = [1 if above else -1,
+             0 if buy_all is None else (1 if buy_all >= 55 else -1 if buy_all <= 45 else 0),
+             0 if buy_30 is None else (1 if buy_30 >= 55 else -1 if buy_30 <= 45 else 0),
+             1 if hl >= 2 else -1 if hl <= -2 else 0]
+    score = sum(votes)
+    who = "Buyers in control" if score >= 2 else "Sellers in control" if score <= -2 else "Tug of war"
+    why = [f"Price {'above' if above else 'below'} VWAP" + (f" ({(last / vwap_now - 1) * 100:+.2f}%)" if vwap_now else ""),
+           f"Today {buy_all}% of volume leaned to buyers" if buy_all is not None else "No volume yet",
+           f"Last 30 min {buy_30}% buyers" if buy_30 is not None else "",
+           "Higher lows in the last 30 min" if hl >= 2 else "Lower highs in the last 30 min" if hl <= -2 else "No clear swing in the last 30 min"]
+    return {"who": who, "side": 1 if score >= 2 else -1 if score <= -2 else 0, "buy_today": buy_all, "buy_30": buy_30,
+            "why": [w for w in why if w]}
+
+
+def fair_value_gaps(df) -> list:
+    """Three-candle gaps: bullish when candle 3's low is above candle 1's high, bearish when candle 3's high is below
+    candle 1's low. Tracks how much of each gap later bars filled. Returns the unfilled ones, newest first."""
+    if df is None or len(df) < 3:
+        return []
+    H, L = df["High"].values, df["Low"].values
+    out = []
+    for i in range(2, len(df)):
+        if L[i] > H[i - 2]:
+            lo, hi, kind = H[i - 2], L[i], "bull"
+        elif H[i] < L[i - 2]:
+            lo, hi, kind = H[i], L[i - 2], "bear"
+        else:
+            continue
+        if (hi - lo) / lo * 100 < FVG_MIN_PCT:
+            continue
+        after = df.iloc[i + 1:]
+        if kind == "bull":
+            reach = float(after["Low"].min()) if len(after) else hi
+            top, bot = hi, lo
+            filled = 0.0 if reach >= hi else min(1.0, (hi - reach) / (hi - lo))
+        else:
+            reach = float(after["High"].max()) if len(after) else lo
+            top, bot = hi, lo
+            filled = 0.0 if reach <= lo else min(1.0, (reach - lo) / (hi - lo))
+        if filled >= 1.0:
+            continue
+        out.append({"kind": kind, "lo": clean(round(bot, 4)), "hi": clean(round(top, 4)), "bar": i - 1,
+                    "time": (df.index[i - 1] + pd.Timedelta(minutes=m.BAR_MINUTES)).tz_convert(AMS).strftime("%H:%M"),
+                    "filled": int(round(filled * 100)), "size_pct": float(round((hi - lo) / lo * 100, 2))})
+    return out[::-1]
+
+
 def live(s: Settings) -> dict:
     now_ams = datetime.now(AMS)
     now_ny = now_ams.astimezone(NY)
@@ -504,6 +578,8 @@ def live(s: Settings) -> dict:
                         "l": [clean(x) for x in sess_df["Low"]], "c": [clean(x) for x in sess_df["Close"]],
                         "vwap": [clean(x) for x in vw]},
             "marks": detail_marks,
+            "control": control(sess_df, vw),
+            "fvg": fair_value_gaps(sess_df),
         })
     out["watchlist"] = {"rows": wl,
                         "session": f"{any_snap.extra['date']:%a %d %b}" if any_snap is not None else None,
